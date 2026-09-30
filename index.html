@@ -710,6 +710,7 @@
     let isTouching = false;
     let lastTouchX = 0;
     let lastTouchY = 0;
+    let lastTapTime = 0;
 
     let boss = null;
 
@@ -718,10 +719,7 @@
       playBossAlarm();
       MusicEngine.isBoss = true;
 
-      const sec = getCurSector();
-      const bConf = sec.boss || {};
-      const bossHp = bConf.hp || 120;
-
+      const bossHp = currentSector === 1 ? 120 : 180;
       boss = {
         x: canvas.width / 2,
         y: -90,
@@ -732,45 +730,29 @@
         hp: bossHp,
         maxHp: bossHp,
         phase: 1,
-        color: bConf.color || '#ff0055',
-        speedX: bConf.speedX || 2.2,
+        color: '#ff0055',
+        speedX: 2.2,
         shootCooldown: 0,
         flash: 0,
-        shootRate: bConf.shootRate || 50,
-        phase2Threshold: bConf.phase2Threshold || 0.5,
-        name: bConf.name || `BOSS SEKTORA 0${currentSectorIndex + 1}`
+        name: currentSector === 1 ? 'TITAN-PRIME [RDZEŃ 01]' : 'DREADNOUGHT VEX'
       };
     }
 
-    function startSectorCutscene(sectorIdx = currentSectorIndex) {
-      const sec = campaign[sectorIdx] || campaign[0];
-      CutsceneSystem.start({
-        illustration: sec.cutscene?.illustration || 'briefing',
-        lines: sec.cutscene?.lines && sec.cutscene.lines.length > 0 
-          ? sec.cutscene.lines 
-          : [
-            `SEKTOR 0${sectorIdx + 1}: ${sec.name || 'ANOMALIA BOJOWA'}`,
-            'Zniszcz wrogie formacje i przygotuj się na starcie z Bossem!'
-          ],
-        onComplete: () => {
-          state = 'WARMUP';
-          warmupTimer = WARMUP_DURATION;
-          MusicEngine.start();
-        }
-      });
-    }
-
     function onTouchStart(e) {
+      if (e.type === 'mousedown' && performance.now() - lastTapTime < 300) return;
+      if (e.type === 'touchstart') lastTapTime = performance.now();
+
       e.preventDefault();
       initAudio();
 
-      if (state === 'SPLASH') {
-        const touch = e.touches ? e.touches[0] : e;
-        const rect = canvas.getBoundingClientRect();
-        const clientX = touch.clientX - rect.left;
-        const clientY = touch.clientY - rect.top;
+      const touch = e.touches ? e.touches[0] : e;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const clientX = (touch.clientX - rect.left) * scaleX;
+      const clientY = (touch.clientY - rect.top) * scaleY;
 
-        // Przycisk edytora
+      if (state === 'SPLASH') {
         const eb = editorBtnBounds;
         if (clientX >= eb.x && clientX <= eb.x + eb.w && clientY >= eb.y && clientY <= eb.y + eb.h) {
           playBtnSound();
@@ -1118,16 +1100,16 @@
         ctx.font = 'bold 16px monospace';
         ctx.fillText('OVERDRIVE PROTOCOL', canvas.width / 2, canvas.height * 0.38 + 32);
 
+        if (isCustomCampaignLoaded) {
+          ctx.fillStyle = '#00ffcc';
+          ctx.font = 'bold 11px monospace';
+          ctx.shadowBlur = 0;
+          ctx.fillText(`[ ZAŁADOWANO KAMPANIĘ: ${campaign.length} SEKTORÓW ]`, canvas.width / 2, canvas.height * 0.38 + 56);
+        }
+
         if (splashAlpha > 0.4) {
           const btnW = Math.min(280, canvas.width - 60);
-          const btnH = 50;
-          const btnX = (canvas.width - btnW) / 2;
-          const btnY = canvas.height * 0.60;
-          splashBtnBounds = { x: btnX, y: btnY, w: btnW, h: btnH };
-
-          const btnPulse = Math.sin(now * 0.005) * 4;
-          ctx.shadowBlur = 15 + btnPulse;
-          ctx.shadowColor = '#00ffcc';
+          const btnH = 54;
           ctx.fillStyle = 'rgba(0, 255, 204, 0.12)';
           ctx.fillRect(btnX, btnY, btnW, btnH);
 
@@ -1158,15 +1140,8 @@
           ctx.font = 'bold 12px monospace';
           ctx.fillText('🛠 OTWÓRZ EDYTOR MISJI', canvas.width / 2, edY + 23);
 
-          if (isCustomCampaignLoaded) {
-            ctx.fillStyle = '#00ffcc';
-            ctx.font = 'bold 10px monospace';
-            ctx.fillText(`[ ZAŁADOWANO KAMPANIĘ: ${campaign.length} SEKTORÓW ]`, canvas.width / 2, edY - 6);
-          }
-
-          // Przycisk Dev Invincible
           const devW = Math.min(260, canvas.width - 60);
-          const devH = 34;
+          const devH = 38;
           const devX = (canvas.width - devW) / 2;
           const devY = edY + edH + 12;
           godModeBtnBounds = { x: devX, y: devY, w: devW, h: devH };
