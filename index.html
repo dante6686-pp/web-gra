@@ -14,7 +14,7 @@
       -webkit-user-select: none;
     }
     body { 
-      background: #05070c; 
+      background: #04060a; 
       overflow: hidden; 
       font-family: 'Courier New', Courier, monospace; 
     }
@@ -39,7 +39,9 @@
     window.addEventListener('resize', resize);
     resize();
 
-    // Syntezator dźwięków Web Audio API
+    // ==========================================
+    // --- SYNTEZATOR AUDIO & DYNAMICZNA MUZYKA ---
+    // ==========================================
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     let audioCtx = null;
 
@@ -57,10 +59,25 @@
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(820 * pitchMod, audioCtx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.05);
-      gain.gain.setValueAtTime(0.09, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.005, audioCtx.currentTime + 0.05);
       osc.start();
       osc.stop(audioCtx.currentTime + 0.05);
+    }
+
+    function playEnemyShootSound() {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(380, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.07, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.08);
     }
 
     function playHitSound() {
@@ -72,7 +89,7 @@
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(340, audioCtx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.04);
-      gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.10, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.04);
       osc.start();
       osc.stop(audioCtx.currentTime + 0.04);
@@ -85,11 +102,11 @@
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.type = 'sawtooth';
-      const startFreq = heavy ? 140 : 220;
-      const duration = heavy ? 0.28 : 0.18;
+      const startFreq = heavy ? 140 : 210;
+      const duration = heavy ? 0.32 : 0.18;
       osc.frequency.setValueAtTime(startFreq, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(25, audioCtx.currentTime + duration);
-      gain.gain.setValueAtTime(heavy ? 0.35 : 0.22, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(22, audioCtx.currentTime + duration);
+      gain.gain.setValueAtTime(heavy ? 0.32 : 0.18, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
       osc.start();
       osc.stop(audioCtx.currentTime + duration);
@@ -104,44 +121,29 @@
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.06);
-        gain.gain.setValueAtTime(0.18, audioCtx.currentTime + idx * 0.06);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + idx * 0.06 + 0.12);
-        osc.start(audioCtx.currentTime + idx * 0.06);
-        osc.stop(audioCtx.currentTime + idx * 0.06 + 0.12);
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.05);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime + idx * 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + idx * 0.05 + 0.11);
+        osc.start(audioCtx.currentTime + idx * 0.05);
+        osc.stop(audioCtx.currentTime + idx * 0.05 + 0.11);
       });
     }
 
-    function playAlertSound() {
+    function playBossAlarm() {
       if (!audioCtx) return;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-      osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.08);
-      gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.16);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.16);
-    }
-
-    function playWinSound() {
-      if (!audioCtx) return;
-      const notes = [440, 554, 659, 880, 1108];
-      notes.forEach((freq, idx) => {
+      for (let i = 0; i < 3; i++) {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.11);
-        gain.gain.setValueAtTime(0.16, audioCtx.currentTime + idx * 0.11);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + idx * 0.11 + 0.28);
-        osc.start(audioCtx.currentTime + idx * 0.11);
-        osc.stop(audioCtx.currentTime + idx * 0.11 + 0.28);
-      });
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(420, audioCtx.currentTime + i * 0.22);
+        osc.frequency.exponentialRampToValueAtTime(780, audioCtx.currentTime + i * 0.22 + 0.18);
+        gain.gain.setValueAtTime(0.18, audioCtx.currentTime + i * 0.22);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.22 + 0.2);
+        osc.start(audioCtx.currentTime + i * 0.22);
+        osc.stop(audioCtx.currentTime + i * 0.22 + 0.2);
+      }
     }
 
     function playKeySound(pitchMod = 1) {
@@ -167,11 +169,99 @@
       osc.type = 'sine';
       osc.frequency.setValueAtTime(440, audioCtx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.12);
-      gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.16, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
       osc.start();
       osc.stop(audioCtx.currentTime + 0.12);
     }
+
+    // --- PROCEDURALNY MOTOR MUZYCZNY SYNTHWAVE ---
+    const MusicEngine = {
+      isPlaying: false,
+      step: 0,
+      nextNoteTime: 0,
+      tempo: 124,
+      isBoss: false,
+      seqSector1: [55, 55, 110, 55, 65.4, 55, 73.4, 55, 55, 55, 110, 82.4, 65.4, 73.4, 55, 82.4],
+      seqSector2: [48.9, 48.9, 98, 48.9, 58.2, 48.9, 65.4, 48.9, 48.9, 48.9, 98, 73.4, 58.2, 65.4, 48.9, 73.4],
+      seqBoss: [65.4, 65.4, 130.8, 65.4, 77.8, 65.4, 87.3, 98, 65.4, 65.4, 130.8, 98, 77.8, 87.3, 65.4, 116.5],
+      arp: [220, 0, 261.6, 0, 329.6, 0, 440, 329.6, 220, 0, 293.7, 0, 349.2, 0, 440, 523.2],
+
+      start() {
+        this.isPlaying = true;
+        this.step = 0;
+        if (audioCtx) this.nextNoteTime = audioCtx.currentTime + 0.05;
+      },
+
+      stop() {
+        this.isPlaying = false;
+      },
+
+      update() {
+        if (!this.isPlaying || !audioCtx) return;
+
+        const currentBpm = this.isBoss ? 138 : this.tempo;
+        const secondsPerStep = (60 / currentBpm) / 4;
+
+        while (this.nextNoteTime < audioCtx.currentTime + 0.1) {
+          this.scheduleStep(this.nextNoteTime, this.step);
+          this.nextNoteTime += secondsPerStep;
+          this.step = (this.step + 1) % 16;
+        }
+      },
+
+      scheduleStep(time, stepIdx) {
+        let bassSeq = currentSector === 1 ? this.seqSector1 : this.seqSector2;
+        if (this.isBoss) bassSeq = this.seqBoss;
+
+        const freq = bassSeq[stepIdx];
+        if (freq > 0) {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          const filter = audioCtx.createBiquadFilter();
+
+          osc.type = this.isBoss ? 'sawtooth' : 'triangle';
+          osc.frequency.setValueAtTime(freq, time);
+
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(this.isBoss ? 800 : 450, time);
+          filter.frequency.exponentialRampToValueAtTime(120, time + 0.12);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          gain.gain.setValueAtTime(this.isBoss ? 0.13 : 0.09, time);
+          gain.gain.exponentialRampToValueAtTime(0.001, time + 0.13);
+
+          osc.start(time);
+          osc.stop(time + 0.13);
+        }
+
+        if (stepIdx % 2 === 0 && !this.isBoss) {
+          const arpFreq = this.arp[stepIdx];
+          if (arpFreq > 0) {
+            const arpOsc = audioCtx.createOscillator();
+            const arpGain = audioCtx.createGain();
+            arpOsc.type = 'sine';
+            arpOsc.frequency.setValueAtTime(arpFreq, time);
+            arpOsc.connect(arpGain);
+            arpGain.connect(audioCtx.destination);
+            arpGain.gain.setValueAtTime(0.025, time);
+            arpGain.gain.exponentialRampToValueAtTime(0.001, time + 0.10);
+            arpOsc.start(time);
+            arpOsc.stop(time + 0.10);
+          }
+        }
+      }
+    };
+
+    // ==========================================
+    // --- STAN GRY, SEKTORY I GRACZ ---
+    // ==========================================
+    let currentSector = 1;
+    const LEVEL_DURATION = 44; // Czas fali do nadejścia Bossa (44s)
+    const WARMUP_DURATION = 2.4;
 
     const player = {
       x: canvas.width / 2,
@@ -182,14 +272,6 @@
       maxWeaponLevel: 5
     };
 
-    const LEVEL_DURATION = 45; // Czas fali: 45 sekund
-    const WARMUP_DURATION = 2.5;
-
-    // Równe kamienie milowe fali:
-    // Poziom 2: 20% fali (9s)
-    // Poziom 3: 40% fali (18s)
-    // Poziom 4: 60% fali (27s)
-    // Poziom 5: 80% fali (36s) -> 80%-100% to finałowy Overdrive
     const UPGRADE_MILESTONES = [
       { targetTier: 2, triggerProgress: 0.20, triggered: false },
       { targetTier: 3, triggerProgress: 0.40, triggered: false },
@@ -197,21 +279,23 @@
       { targetTier: 5, triggerProgress: 0.80, triggered: false }
     ];
 
-    let state = 'SPLASH'; // Zaczynamy od ekranu tytułowego
-    let splashAlpha = 0;  // Płynne rozjaśnianie z czerni
+    let state = 'SPLASH';
+    let splashAlpha = 0;
     let splashBtnBounds = { x: 0, y: 0, w: 0, h: 0 };
     let stars = [];
 
-    for (let i = 0; i < 45; i++) {
+    for (let i = 0; i < 55; i++) {
       stars.push({
         x: Math.random(),
         y: Math.random(),
-        speed: Math.random() * 0.4 + 0.2,
+        speed: Math.random() * 0.5 + 0.2,
         size: Math.random() * 1.8 + 0.8
       });
     }
 
+    // ==========================================
     // --- UNIWERSALNY SYSTEM CUTSCENEK ---
+    // ==========================================
     const CutsceneSystem = {
       illustration: 'briefing',
       lines: [],
@@ -219,7 +303,7 @@
       displayedText: '',
       charIndex: 0,
       charTimer: 0,
-      charInterval: 0.028, // Szybkość wypisywania znaków
+      charInterval: 0.025,
       isLineComplete: false,
       onComplete: null,
 
@@ -232,18 +316,17 @@
         this.charTimer = 0;
         this.isLineComplete = false;
         this.onComplete = config.onComplete || null;
+        MusicEngine.stop();
         state = 'CUTSCENE';
       },
 
       onTap() {
         if (!this.isLineComplete) {
-          // Natychmiastowe dokończenie bieżącej linii
           this.displayedText = this.lines[this.currentLineIndex];
           this.charIndex = this.displayedText.length;
           this.isLineComplete = true;
           playKeySound(1.3);
         } else {
-          // Przejście do kolejnej linii
           if (this.currentLineIndex < this.lines.length - 1) {
             this.currentLineIndex++;
             this.displayedText = '';
@@ -251,7 +334,6 @@
             this.isLineComplete = false;
             playKeySound(1.0);
           } else {
-            // Koniec cutscenki!
             playBtnSound();
             if (this.onComplete) this.onComplete();
           }
@@ -276,26 +358,24 @@
       },
 
       render(ctx, width, height, now) {
-        // Tło
-        ctx.fillStyle = '#05070c';
+        ctx.fillStyle = '#04060a';
         ctx.fillRect(0, 0, width, height);
 
-        const illusHeight = height * 0.44;
+        const illusHeight = height * 0.43;
 
-        // 1. GÓRNA POŁOWA: ILUSTRACJA
+        // 1. GÓRNA POŁOWA: ILUSTRACJA TAKTYCZNA
         ctx.save();
         ctx.beginPath();
         ctx.rect(14, 14, width - 28, illusHeight);
         ctx.clip();
 
-        // Tło wizjera taktycznego
-        ctx.fillStyle = '#080d18';
+        ctx.fillStyle = currentSector === 2 ? '#0b130e' : '#080d18';
         ctx.fillRect(14, 14, width - 28, illusHeight);
 
-        // Siatka radarowa / taktyczna
-        ctx.strokeStyle = 'rgba(0, 255, 204, 0.12)';
+        const gridColor = currentSector === 2 ? 'rgba(0, 255, 136, 0.12)' : 'rgba(0, 255, 204, 0.12)';
+        ctx.strokeStyle = gridColor;
         ctx.lineWidth = 1;
-        const gridStep = 32;
+        const gridStep = 30;
         for (let x = 14; x < width - 14; x += gridStep) {
           ctx.beginPath();
           ctx.moveTo(x, 14);
@@ -312,71 +392,77 @@
         const centerX = width / 2;
         const centerY = 14 + illusHeight / 2;
 
-        // Kręgi radaru i promień skanujący
-        ctx.strokeStyle = 'rgba(0, 229, 255, 0.35)';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 55, 0, Math.PI * 2);
-        ctx.arc(centerX, centerY, 105, 0, Math.PI * 2);
-        ctx.stroke();
+        if (this.illustration === 'briefing') {
+          ctx.strokeStyle = 'rgba(0, 229, 255, 0.35)';
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, 55, 0, Math.PI * 2);
+          ctx.arc(centerX, centerY, 105, 0, Math.PI * 2);
+          ctx.stroke();
 
-        const sweepAngle = (now * 0.0022) % (Math.PI * 2);
-        ctx.strokeStyle = '#00ffcc';
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
-        ctx.lineTo(centerX + Math.cos(sweepAngle) * 115, centerY + Math.sin(sweepAngle) * 115);
-        ctx.stroke();
+          const sweepAngle = (now * 0.0024) % (Math.PI * 2);
+          ctx.strokeStyle = '#00ffcc';
+          ctx.beginPath();
+          ctx.moveTo(centerX, centerY);
+          ctx.lineTo(centerX + Math.cos(sweepAngle) * 115, centerY + Math.sin(sweepAngle) * 115);
+          ctx.stroke();
 
-        // Wektorowy schemat wrogiego niszczyciela / sygnatury
-        ctx.strokeStyle = '#ff0055';
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#ff0055';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY - 40);
-        ctx.lineTo(centerX + 50, centerY + 25);
-        ctx.lineTo(centerX + 18, centerY + 18);
-        ctx.lineTo(centerX, centerY + 35);
-        ctx.lineTo(centerX - 18, centerY + 18);
-        ctx.lineTo(centerX - 50, centerY + 25);
-        ctx.closePath();
-        ctx.stroke();
-        ctx.shadowBlur = 0;
+          ctx.strokeStyle = '#ff0055';
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = '#ff0055';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(centerX, centerY - 38);
+          ctx.lineTo(centerX + 48, centerY + 22);
+          ctx.lineTo(centerX + 18, centerY + 16);
+          ctx.lineTo(centerX, centerY + 34);
+          ctx.lineTo(centerX - 18, centerY + 16);
+          ctx.lineTo(centerX - 48, centerY + 22);
+          ctx.closePath();
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        } else if (this.illustration === 'sector2_debrief') {
+          ctx.strokeStyle = '#ffbb00';
+          ctx.lineWidth = 2;
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = '#ffbb00';
+          for (let a = 0; a < 6; a++) {
+            const ax = centerX + Math.cos(a * 1.05 + now * 0.001) * (50 + a * 12);
+            const ay = centerY + Math.sin(a * 1.05 + now * 0.001) * (30 + a * 8);
+            ctx.strokeRect(ax - 8, ay - 8, 16, 16);
+          }
+          ctx.shadowBlur = 0;
+        }
 
-        // Etykiety taktyczne HUD
         ctx.fillStyle = '#00ffcc';
         ctx.font = 'bold 11px monospace';
         ctx.textAlign = 'left';
-        ctx.fillText('// RADAR TAKTYCZNY: SEKTOR 07', 26, 34);
+        ctx.fillText(`// RADAR TAKTYCZNY: SEKTOR 0${currentSector}`, 26, 34);
         ctx.fillStyle = '#ff0055';
         ctx.textAlign = 'right';
-        ctx.fillText('ALERT: DEFCON 1', width - 26, 34);
-        ctx.fillText('SYGNATURA: KLASA TITAN', width - 26, 50);
+        ctx.fillText('STATUS: AKTYWNY', width - 26, 34);
 
         ctx.restore();
 
-        // Ramka wizjera ilustracji
-        ctx.strokeStyle = '#00ffcc';
+        ctx.strokeStyle = currentSector === 2 ? '#00ff88' : '#00ffcc';
         ctx.lineWidth = 2;
         ctx.strokeRect(14, 14, width - 28, illusHeight);
 
-        // 2. DOLNA POŁOWA: KONSOLA KOMPUTERA (PROMPT)
+        // 2. DOLNA POŁOWA: KONSOLA PROMPTU
         const termY = 14 + illusHeight + 14;
         const termH = height - termY - 18;
 
-        ctx.fillStyle = '#030509';
+        ctx.fillStyle = '#020408';
         ctx.fillRect(14, termY, width - 28, termH);
-        ctx.strokeStyle = '#1a3344';
+        ctx.strokeStyle = '#182b3a';
         ctx.strokeRect(14, termY, width - 28, termH);
 
-        // Pasek tytułowy terminala
-        ctx.fillStyle = '#0d1a24';
+        ctx.fillStyle = '#0a1722';
         ctx.fillRect(14, termY, width - 28, 26);
         ctx.fillStyle = '#00e5ff';
         ctx.font = 'bold 11px monospace';
         ctx.textAlign = 'left';
-        ctx.fillText('> TERMINAL POKŁADOWY // TRANSMISJA_PRZYMIERZA', 24, termY + 18);
+        ctx.fillText('> TERMINAL POKŁADOWY // TRANSMISJA DOWÓDZTWA', 24, termY + 18);
 
-        // Wyświetlanie dotychczasowych linijek
         const startX = 26;
         let lineY = termY + 52;
         const lineHeight = 24;
@@ -388,88 +474,116 @@
           lineY += lineHeight;
         }
 
-        // Aktualnie pisana linijka z migającym kursorem
         ctx.fillStyle = '#00ffcc';
         ctx.fillText(`> ${this.displayedText}${Math.floor(now / 350) % 2 === 0 ? '█' : ' '}`, startX, lineY);
 
-        // Dolny przycisk / prompt do przejścia
         ctx.textAlign = 'center';
         ctx.fillStyle = this.isLineComplete ? '#ffea00' : 'rgba(255, 234, 0, 0.5)';
         ctx.font = 'bold 12px monospace';
         const promptText = this.currentLineIndex === this.lines.length - 1 && this.isLineComplete 
-          ? '[ DOTKNIJ, ABY ROZPOCZĄĆ LOT ▶ ]' 
+          ? '[ DOTKNIJ, ABY POTWIERDZIĆ ROZKAZ ▶ ]' 
           : '[ DOTKNIJ, ABY KONTYNUOWAĆ ▶ ]';
         ctx.fillText(promptText, width / 2, termY + termH - 16);
       }
     };
 
+    // ==========================================
+    // --- BYTY GRY: POCISKI, WROGOWIE, BOSS ---
+    // ==========================================
     let warmupTimer = WARMUP_DURATION;
     let levelTimer = 0;
     let enemiesKilled = 0;
-
-    let targetTierNeeded = 2; // Następny poziom, o który walczymy
-    let retryUpgradeTimer = 0; // Czas do ponowienia po ucieczce transportera lub przepadnięciu kryształu
-    const RETRY_DELAY = 5.0;   // 5 sekund na ponowny spawn w razie straty
+    let targetTierNeeded = 2;
+    let retryUpgradeTimer = 0;
+    const RETRY_DELAY = 5.0;
 
     let enemies = [];
     let bullets = [];
+    let enemyBullets = [];
     let particles = [];
     let pickups = [];
     let floatingTexts = [];
+    let asteroids = [];
 
     let score = 0;
     let highScore = parseInt(localStorage.getItem('cyber_dodge_hi') || 0);
 
     let spawnTimer = 0;
+    let asteroidTimer = 0;
     let shootTimer = 0;
     let screenShake = 0;
+    let bossWarningTimer = 0;
 
     let isTouching = false;
     let lastTouchX = 0;
     let lastTouchY = 0;
 
+    let boss = null;
+
+    function spawnBoss() {
+      bossWarningTimer = 2.8;
+      playBossAlarm();
+      MusicEngine.isBoss = true;
+
+      const bossHp = currentSector === 1 ? 120 : 180;
+      boss = {
+        x: canvas.width / 2,
+        y: -90,
+        targetY: 110,
+        radius: 46,
+        width: 96,
+        height: 64,
+        hp: bossHp,
+        maxHp: bossHp,
+        phase: 1,
+        color: '#ff0055',
+        speedX: 2.2,
+        shootCooldown: 0,
+        flash: 0,
+        name: currentSector === 1 ? 'TITAN-PRIME [RDZEŃ 01]' : 'DREADNOUGHT VEX'
+      };
+    }
+
     function onTouchStart(e) {
       e.preventDefault();
       initAudio();
 
-      // 1. Ekran startowy (Splash Screen)
       if (state === 'SPLASH') {
         const touch = e.touches ? e.touches[0] : e;
         const rect = canvas.getBoundingClientRect();
         const clientX = touch.clientX - rect.left;
         const clientY = touch.clientY - rect.top;
 
-        // Sprawdzamy czy kliknięto w przycisk "ROZPOCZNIJ MISJĘ"
         const b = splashBtnBounds;
         if (clientX >= b.x && clientX <= b.x + b.w && clientY >= b.y && clientY <= b.y + b.h) {
           playBtnSound();
-          // Uruchamiamy modułową cutscenkę
           CutsceneSystem.start({
             illustration: 'briefing',
             lines: [
               'INICJALIZACJA SYSTEMÓW POKŁADOWYCH...',
               'POŁĄCZENIE Z DOWÓDZTWEM SEKTORA 07 AKTYWNE.',
-              'ALARM: Formacja wrogich dronów i krążowników wkroczyła w perymetr.',
-              'ZADANIE: Wytrzymaj 45 sekund fali uderzeniowej.',
-              'STRATEGIA: Niszcz wrogie transportery i przejmuj zrzucane ulepszenia broni.',
-              'GOTOWY DO WALKI? POTWIERDŹ START.'
+              'ALARM: Formacja wrogich dronów i niszczycieli wkroczyła w perymetr.',
+              'OSTRZEŻENIE: Wrogie jednostki bojowe otwierają ogień plazmowy!',
+              'ZADANIE: Przetrwaj falę i zniszcz flagowy rdzeń TITAN-PRIME.',
+              'PRZEJMUJ ZASOBY Z TRANSPORTERÓW I ROZPOCZNIJ WALKĘ.'
             ],
             onComplete: () => {
               state = 'WARMUP';
               warmupTimer = WARMUP_DURATION;
+              MusicEngine.start();
             }
           });
         }
         return;
       }
 
-      // 2. Obsługa Cutscenki (szybkie pisanie / kolejna linijka)
       if (state === 'CUTSCENE') {
         CutsceneSystem.onTap();
         return;
       }
 
       if (state === 'WON' || state === 'GAMEOVER') {
+        currentSector = 1;
         resetGame();
         return;
       }
@@ -506,7 +620,6 @@
     window.addEventListener('touchstart', onTouchStart, { passive: false });
     window.addEventListener('touchmove', onTouchMove, { passive: false });
     window.addEventListener('touchend', onTouchEnd, { passive: false });
-
     window.addEventListener('mousedown', onTouchStart);
     window.addEventListener('mousemove', onTouchMove);
     window.addEventListener('mouseup', onTouchEnd);
@@ -514,9 +627,12 @@
     function resetGame() {
       enemies = [];
       bullets = [];
+      enemyBullets = [];
       particles = [];
       pickups = [];
       floatingTexts = [];
+      asteroids = [];
+      boss = null;
       score = 0;
       levelTimer = 0;
       enemiesKilled = 0;
@@ -525,12 +641,49 @@
       player.weaponLevel = 1;
       targetTierNeeded = 2;
       retryUpgradeTimer = 0;
+      bossWarningTimer = 0;
+      spawnTimer = 0;
+      asteroidTimer = 0;
 
       UPGRADE_MILESTONES.forEach(m => m.triggered = false);
 
       player.x = canvas.width / 2;
       player.y = canvas.height * 0.78;
       isTouching = false;
+
+      MusicEngine.isBoss = false;
+      MusicEngine.start();
+    }
+
+    function startSector2() {
+      currentSector = 2;
+      enemies = [];
+      bullets = [];
+      enemyBullets = [];
+      particles = [];
+      pickups = [];
+      floatingTexts = [];
+      asteroids = [];
+      boss = null;
+      levelTimer = 0;
+      warmupTimer = WARMUP_DURATION;
+      state = 'WARMUP';
+      targetTierNeeded = Math.min(5, player.weaponLevel + 1);
+      retryUpgradeTimer = 0;
+      bossWarningTimer = 0;
+      spawnTimer = 0;
+      asteroidTimer = 0;
+
+      UPGRADE_MILESTONES.forEach(m => {
+        m.triggered = player.weaponLevel >= m.targetTier;
+      });
+
+      player.x = canvas.width / 2;
+      player.y = canvas.height * 0.78;
+      isTouching = false;
+
+      MusicEngine.isBoss = false;
+      MusicEngine.start();
     }
 
     function shootWeapons() {
@@ -583,33 +736,41 @@
       }
     }
 
-    function spawnUpgradeCarrier() {
-      playAlertSound();
-      addFloatingText('! TRANSPORTER ZASOBÓW !', canvas.width / 2, 70, '#00ffff');
+    function fireEnemyBullet(x, y, vx, vy, color = '#ff3366') {
+      enemyBullets.push({ x, y, vx, vy, radius: 4, color });
+      playEnemyShootSound();
+    }
 
-      const carrier = {
+    function spawnUpgradeCarrier() {
+      addFloatingText('! TRANSPORTER ZASOBÓW !', canvas.width / 2, 70, '#00ffff');
+      enemies.push({
         x: Math.random() * (canvas.width - 60) + 30,
         y: -35,
         radius: 22,
-        speed: 2.4, // Wolniejszy, żeby gracz miał czas go ustrzelić
+        speed: 2.2,
         hp: 5,
         maxHp: 5,
         color: '#00e5ff',
         type: 'carrier',
         scoreVal: 250,
         flash: 0,
-        hasUpgrade: true
-      };
-
-      enemies.push(carrier);
+        hasUpgrade: true,
+        shootCooldown: 999
+      });
     }
 
-    function spawnRegularEnemy() {
+    function spawnRegularEnemy(forceType = null) {
       const rand = Math.random();
       let enemy = {};
 
-      if (rand < 0.60) {
-        // Dron (1 HP)
+      let type = forceType;
+      if (!type) {
+        if (rand < 0.54) type = 'scout';
+        else if (rand < 0.84) type = 'cruiser';
+        else type = 'titan';
+      }
+
+      if (type === 'scout') {
         enemy = {
           x: Math.random() * (canvas.width - 40) + 20,
           y: -25,
@@ -621,55 +782,70 @@
           type: 'scout',
           scoreVal: 50,
           flash: 0,
-          hasUpgrade: false
+          hasUpgrade: false,
+          shootCooldown: 999
         };
-      } else if (rand < 0.88) {
-        // Krążownik (3 HP)
+      } else if (type === 'cruiser') {
         enemy = {
           x: Math.random() * (canvas.width - 50) + 25,
           y: -30,
           radius: 18,
-          speed: 3.3 + Math.random() * 0.8 + (levelTimer / 35),
+          speed: 3.1 + Math.random() * 0.7,
           hp: 3,
           maxHp: 3,
           color: '#ff0055',
           type: 'cruiser',
-          scoreVal: 120,
+          scoreVal: 130,
           flash: 0,
-          hasUpgrade: false
+          hasUpgrade: false,
+          shootCooldown: Math.random() * 40 + 35
         };
       } else {
-        // Niszczyciel (7 HP)
         enemy = {
           x: Math.random() * (canvas.width - 60) + 30,
           y: -40,
-          radius: 26,
-          speed: 2.2 + Math.random() * 0.5,
+          radius: 25,
+          speed: 2.0 + Math.random() * 0.5,
           hp: 7,
           maxHp: 7,
           color: '#bf00ff',
           type: 'titan',
-          scoreVal: 300,
+          scoreVal: 320,
           flash: 0,
-          hasUpgrade: false
+          hasUpgrade: false,
+          shootCooldown: Math.random() * 50 + 50
         };
       }
 
       enemies.push(enemy);
     }
 
+    function spawnAsteroid() {
+      const size = Math.random() * 16 + 18;
+      asteroids.push({
+        x: Math.random() * (canvas.width - 60) + 30,
+        y: -40,
+        radius: size,
+        hp: Math.floor(size * 0.6),
+        maxHp: Math.floor(size * 0.6),
+        speed: Math.random() * 2.5 + 2.0,
+        rot: 0,
+        rotSpeed: (Math.random() - 0.5) * 0.04
+      });
+    }
+
     function createExplosion(x, y, color, count = 15, heavy = false) {
-      screenShake = heavy ? 14 : 7;
+      screenShake = heavy ? 16 : 8;
       playExplodeSound(heavy);
       for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * (heavy ? 7 : 5) + 1.5;
+        const speed = Math.random() * (heavy ? 7.5 : 5.2) + 1.5;
         particles.push({
           x: x,
           y: y,
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed,
-          radius: Math.random() * 3 + 1.5,
+          radius: Math.random() * 3.2 + 1.5,
           color: color,
           alpha: 1
         });
@@ -680,11 +856,16 @@
       floatingTexts.push({ text, x, y, color, alpha: 1, vy: -1.2 });
     }
 
+    // ==========================================
+    // --- GŁÓWNA PĘTLA GRY ---
+    // ==========================================
     let lastTimestamp = performance.now();
 
     function loop(now) {
       const dt = Math.min((now - lastTimestamp) / 1000, 0.1);
       lastTimestamp = now;
+
+      MusicEngine.update();
 
       // Screen Shake
       ctx.save();
@@ -694,14 +875,13 @@
         if (screenShake < 0.4) screenShake = 0;
       }
 
-      // --- STAN: SPLASH SCREEN (Crossfade + Neon Menu) ---
+      // --- STAN: SPLASH SCREEN ---
       if (state === 'SPLASH') {
-        splashAlpha = Math.min(1, splashAlpha + dt * 0.75); // Płynne rozjaśnianie z czerni
+        splashAlpha = Math.min(1, splashAlpha + dt * 0.75);
 
-        ctx.fillStyle = '#05070c';
+        ctx.fillStyle = '#04060a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Kosmiczny warp w tle
         stars.forEach(s => {
           s.y += s.speed * dt * 2.5;
           if (s.y > 1) s.y = 0;
@@ -714,7 +894,6 @@
         ctx.save();
         ctx.globalAlpha = splashAlpha;
 
-        // Tytuł gry
         ctx.textAlign = 'center';
         ctx.fillStyle = '#00ffcc';
         ctx.shadowBlur = 25;
@@ -725,10 +904,8 @@
         ctx.fillStyle = '#ff0055';
         ctx.shadowColor = '#ff0055';
         ctx.font = 'bold 16px monospace';
-        ctx.letterSpacing = '4px';
         ctx.fillText('OVERDRIVE PROTOCOL', canvas.width / 2, canvas.height * 0.38 + 32);
 
-        // Przycisk "ROZPOCZNIJ MISJĘ"
         if (splashAlpha > 0.4) {
           const btnW = Math.min(280, canvas.width - 60);
           const btnH = 54;
@@ -737,7 +914,6 @@
           splashBtnBounds = { x: btnX, y: btnY, w: btnW, h: btnH };
 
           const btnPulse = Math.sin(now * 0.005) * 4;
-
           ctx.shadowBlur = 15 + btnPulse;
           ctx.shadowColor = '#00ffcc';
           ctx.fillStyle = 'rgba(0, 255, 204, 0.12)';
@@ -769,71 +945,283 @@
       }
 
       // Tło z motion blur
-      ctx.fillStyle = 'rgba(5, 7, 12, 0.35)';
+      ctx.fillStyle = currentSector === 2 ? 'rgba(6, 12, 10, 0.35)' : 'rgba(4, 6, 10, 0.35)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // --- LOGIKA STANÓW ---
+      // Gwiazdy
+      stars.forEach(s => {
+        s.y += s.speed * dt * (boss ? 0.8 : 2.5);
+        if (s.y > 1) s.y = 0;
+        ctx.fillStyle = currentSector === 2 ? 'rgba(0, 255, 136, 0.25)' : 'rgba(0, 229, 255, 0.25)';
+        ctx.fillRect(s.x * canvas.width, s.y * canvas.height, s.size, s.size);
+      });
+
+      // --- LOGIKA ROZGRYWKI ---
       if (state === 'WARMUP') {
         warmupTimer -= dt;
         if (warmupTimer <= 0) {
           state = 'PLAYING';
-          addFloatingText('FALA ROZPOCZĘTA!', canvas.width / 2, canvas.height / 2, '#00ffcc');
+          addFloatingText(`SEKTOR 0${currentSector}: START!`, canvas.width / 2, canvas.height / 2, '#00ffcc');
         }
       } else if (state === 'PLAYING') {
         levelTimer += dt;
-        spawnTimer++;
         shootTimer++;
 
         const waveProgress = Math.min(1, levelTimer / LEVEL_DURATION);
         const waveCompleted = levelTimer >= LEVEL_DURATION;
 
-        // Auto-strzelanie
+        // Auto-strzał gracza
         const shootRate = player.weaponLevel >= 4 ? 7 : 8;
         if (isTouching && shootTimer % shootRate === 0) {
           shootWeapons();
         }
 
-        // Sprawdzamy czy transporter lub kryształ ulepszenia jest aktualnie w grze
-        const hasCarrierOnScreen = enemies.some(e => e.hasUpgrade);
-        const hasPickupOnScreen = pickups.length > 0;
+        // 1. Spawnowanie Bossa po 100% czasu fali
+        if (waveCompleted && !boss) {
+          spawnBoss();
+        }
 
-        // --- HARMONOGRAM UPGRADE'ÓW ---
+        // 2. Harmonogram ulepszeń (tylko przed bossem)
         if (!waveCompleted && player.weaponLevel < player.maxWeaponLevel) {
-          // 1. Sprawdzamy czy nadszedł czas na kolejny kamień milowy (20%, 40%, 60%, 80%)
+          const hasCarrier = enemies.some(e => e.hasUpgrade);
+          const hasPickup = pickups.length > 0;
+
           const nextMilestone = UPGRADE_MILESTONES.find(m => m.targetTier === targetTierNeeded);
           if (nextMilestone && !nextMilestone.triggered && waveProgress >= nextMilestone.triggerProgress) {
             nextMilestone.triggered = true;
-            if (!hasCarrierOnScreen && !hasPickupOnScreen) {
-              spawnUpgradeCarrier();
-            }
+            if (!hasCarrier && !hasPickup) spawnUpgradeCarrier();
           }
 
-          // 2. Obsługa ponowienia (Retry) jeśli gracz przegapił ulepszenie
           if (retryUpgradeTimer > 0) {
             retryUpgradeTimer -= dt;
-            if (retryUpgradeTimer <= 0 && !hasCarrierOnScreen && !hasPickupOnScreen) {
+            if (retryUpgradeTimer <= 0 && !hasCarrier && !hasPickup) {
               addFloatingText('NOWY TRANSPORTER!', canvas.width / 2, 90, '#ffea00');
               spawnUpgradeCarrier();
             }
           }
         }
 
-        // Spawnowanie standardowych wrogów
+        // 3. DYNAMICZNE SKALOWANIE ROJU (Czas fali + Poziom broni gracza)
         if (!waveCompleted) {
-          const spawnInterval = Math.max(14, 25 - Math.floor(levelTimer / 3.5));
-          if (spawnTimer % spawnInterval === 0) {
+          spawnTimer++;
+          asteroidTimer++;
+
+          // Im wyższy poziom broni i im dalej w fali, tym częstsze spawny:
+          // Poziom 1 na starcie: interval ~46 klatek (~0.75s)
+          // Poziom 5 pod koniec fali: interval ~10 klatek (~0.16s!)
+          const weaponReduction = (player.weaponLevel - 1) * 5.0; // 0 do 20 klatek mniej
+          const progressReduction = waveProgress * 16.0;          // 0 do 16 klatek mniej
+          const currentSpawnInterval = Math.max(10, Math.round(46 - progressReduction - weaponReduction));
+
+          if (spawnTimer >= currentSpawnInterval) {
+            spawnTimer = 0;
             spawnRegularEnemy();
+
+            // Prawdopodobieństwo podwójnego zrzutu wroga (zależne od poziomu broni i postępu)
+            let multiSpawnChance = 0;
+            if (player.weaponLevel === 2) {
+              multiSpawnChance = 0.15 + waveProgress * 0.15;
+            } else if (player.weaponLevel === 3) {
+              multiSpawnChance = 0.35 + waveProgress * 0.25;
+            } else if (player.weaponLevel === 4) {
+              multiSpawnChance = 0.55 + waveProgress * 0.30;
+            } else if (player.weaponLevel >= 5) {
+              multiSpawnChance = 0.75 + waveProgress * 0.20;
+            }
+
+            if (Math.random() < multiSpawnChance) {
+              spawnRegularEnemy();
+            }
+
+            // Potrójny spawn na poziomie Overdrive (LVL 5) w drugiej połowie fali!
+            if (player.weaponLevel >= 5 && waveProgress > 0.45 && Math.random() < 0.45) {
+              spawnRegularEnemy();
+            }
           }
-        } else if (enemies.length === 0) {
-          state = 'WON';
-          playWinSound();
+
+          // Skalowanie asteroidów w Sektorze 2
+          if (currentSector === 2) {
+            const asteroidInterval = Math.max(26, Math.round(65 - waveProgress * 22 - (player.weaponLevel - 1) * 3));
+            if (asteroidTimer >= asteroidInterval) {
+              asteroidTimer = 0;
+              spawnAsteroid();
+            }
+          }
+        }
+      }
+
+      // --- OBSŁUGA OSTRZEŻENIA PRZED BOSSEM ---
+      if (bossWarningTimer > 0) {
+        bossWarningTimer -= dt;
+        ctx.save();
+        ctx.fillStyle = `rgba(255, 0, 85, ${Math.sin(now * 0.015) * 0.25 + 0.25})`;
+        ctx.fillRect(0, canvas.height * 0.22, canvas.width, 60);
+        ctx.fillStyle = '#ff0055';
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 20px monospace';
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#ff0055';
+        ctx.fillText('! OSTRZEŻENIE: TITAN WYKRYTY !', canvas.width / 2, canvas.height * 0.22 + 37);
+        ctx.restore();
+      }
+
+      // --- LOGIKA I STRZELANIE BOSSA ---
+      if (boss) {
+        if (boss.y < boss.targetY) {
+          boss.y += 1.8;
+        } else {
+          boss.x += boss.speedX;
+          if (boss.x < boss.radius + 20 || boss.x > canvas.width - boss.radius - 20) {
+            boss.speedX *= -1;
+          }
+        }
+
+        if (boss.flash > 0) boss.flash--;
+
+        // Faza 2 (poniżej 50% HP)
+        if (boss.phase === 1 && boss.hp <= boss.maxHp * 0.5) {
+          boss.phase = 2;
+          boss.speedX *= 1.4;
+          boss.color = '#ff9900';
+          screenShake = 18;
+          playBossAlarm();
+          addFloatingText('BOSKI OVERDRIVE!', boss.x, boss.y + 40, '#ff0055');
+        }
+
+        boss.shootCooldown++;
+        const bossShootInterval = boss.phase === 2 ? 38 : 55;
+
+        if (boss.shootCooldown >= bossShootInterval && boss.y >= boss.targetY) {
+          boss.shootCooldown = 0;
+
+          if (boss.phase === 1) {
+            fireEnemyBullet(boss.x - 25, boss.y + 20, -1.8, 5.5);
+            fireEnemyBullet(boss.x, boss.y + 25, 0, 6.0);
+            fireEnemyBullet(boss.x + 25, boss.y + 20, 1.8, 5.5);
+          } else {
+            const angles = [-0.6, -0.3, 0, 0.3, 0.6];
+            angles.forEach(a => {
+              fireEnemyBullet(boss.x, boss.y + 25, Math.sin(a) * 6, Math.cos(a) * 6, '#ff0055');
+            });
+          }
+        }
+
+        // Rysowanie kadłuba Bossa
+        ctx.save();
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = boss.color;
+        ctx.fillStyle = boss.flash > 0 ? '#ffffff' : boss.color;
+        ctx.beginPath();
+        ctx.moveTo(boss.x, boss.y + boss.height / 2);
+        ctx.lineTo(boss.x + boss.width / 2, boss.y - boss.height / 2);
+        ctx.lineTo(boss.x + boss.width * 0.2, boss.y - boss.height * 0.2);
+        ctx.lineTo(boss.x, boss.y - boss.height * 0.4);
+        ctx.lineTo(boss.x - boss.width * 0.2, boss.y - boss.height * 0.2);
+        ctx.lineTo(boss.x - boss.width / 2, boss.y - boss.height / 2);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#00ffff';
+        ctx.beginPath();
+        ctx.arc(boss.x, boss.y, 10 + Math.sin(now * 0.01) * 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Pasek HP Bossa
+        const barW = canvas.width - 50;
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(25, 62, barW, 9);
+        ctx.fillStyle = boss.phase === 2 ? '#ff0055' : '#ff9900';
+        ctx.fillRect(25, 62, barW * (Math.max(0, boss.hp) / boss.maxHp), 9);
+        ctx.strokeStyle = '#ffffff';
+        ctx.strokeRect(25, 62, barW, 9);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(`BOSS: ${boss.name}`, 25, 57);
+
+        // Kolizja pocisków gracza z Bossem
+        for (let j = bullets.length - 1; j >= 0; j--) {
+          const b = bullets[j];
+          const distBoss = Math.hypot(b.x - boss.x, b.y - boss.y);
+          if (distBoss < boss.radius + b.radius) {
+            boss.hp -= b.damage;
+            boss.flash = 3;
+            playHitSound();
+
+            if (b.canFragment) fragmentBullet(b.x, b.y);
+            bullets.splice(j, 1);
+
+            // Zniszczenie Bossa
+            if (boss.hp <= 0) {
+              createExplosion(boss.x, boss.y, '#ff0055', 40, true);
+              createExplosion(boss.x - 30, boss.y + 10, '#00ffff', 25, true);
+              createExplosion(boss.x + 30, boss.y - 10, '#ffaa00', 25, true);
+              score += 2500;
+              boss = null;
+              MusicEngine.stop();
+
+              if (currentSector === 1) {
+                CutsceneSystem.start({
+                  illustration: 'sector2_debrief',
+                  lines: [
+                    'TITAN-PRIME ZNISZCZONY! SEKTOR 07 ZABEZPIECZONY.',
+                    'DOWÓDZTWO: Rewelacyjna robota, pilocie!',
+                    'ALARM: Niedobitki floty uciekają w Sektor 08 (Pas Asteroid).',
+                    'OSTRZEŻENIE: Zagęszczenie kosmicznego gruzu jest krytyczne.',
+                    'ZADANIE: Przebij się przez pas asteroid i oczyść Sektor 08.',
+                    'SKOK HIPERPRZESTRZENNY ZA 3... 2... 1...'
+                  ],
+                  onComplete: () => {
+                    startSector2();
+                  }
+                });
+              } else {
+                state = 'WON';
+                if (score > highScore) {
+                  highScore = score;
+                  localStorage.setItem('cyber_dodge_hi', highScore);
+                }
+              }
+              break;
+            }
+          }
+        }
+      }
+
+      // --- POCISKI WROGÓW ---
+      for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        const eb = enemyBullets[i];
+        eb.x += eb.vx;
+        eb.y += eb.vy;
+
+        ctx.save();
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = eb.color;
+        ctx.fillStyle = eb.color;
+        ctx.beginPath();
+        ctx.arc(eb.x, eb.y, eb.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        const dist = Math.hypot(player.x - eb.x, player.y - eb.y);
+        if (dist < player.radius + eb.radius - 2) {
+          createExplosion(player.x, player.y, player.color, 25, true);
+          state = 'GAMEOVER';
+          MusicEngine.stop();
           if (score > highScore) {
             highScore = score;
             localStorage.setItem('cyber_dodge_hi', highScore);
           }
         }
+
+        if (eb.y > canvas.height + 20 || eb.x < -20 || eb.x > canvas.width + 20) {
+          enemyBullets.splice(i, 1);
+        }
       }
 
+      // --- POCISKI GRACZA ---
       for (let i = bullets.length - 1; i >= 0; i--) {
         const b = bullets[i];
         b.x += b.vx || 0;
@@ -861,12 +1249,64 @@
         }
       }
 
+      // --- ASTEROIDY (SEKTOR 2) ---
+      for (let i = asteroids.length - 1; i >= 0; i--) {
+        const ast = asteroids[i];
+        ast.y += ast.speed;
+        ast.rot += ast.rotSpeed;
+
+        ctx.save();
+        ctx.translate(ast.x, ast.y);
+        ctx.rotate(ast.rot);
+        ctx.fillStyle = '#445544';
+        ctx.strokeStyle = '#66aa77';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let j = 0; j < 8; j++) {
+          const ang = (j / 8) * Math.PI * 2;
+          const r = ast.radius * (0.8 + ((j % 3) * 0.15));
+          const rx = Math.cos(ang) * r;
+          const ry = Math.sin(ang) * r;
+          if (j === 0) ctx.moveTo(rx, ry);
+          else ctx.lineTo(rx, ry);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        for (let j = bullets.length - 1; j >= 0; j--) {
+          const b = bullets[j];
+          if (Math.hypot(b.x - ast.x, b.y - ast.y) < ast.radius + b.radius) {
+            ast.hp -= b.damage;
+            playHitSound();
+            if (b.canFragment) fragmentBullet(b.x, b.y);
+            bullets.splice(j, 1);
+
+            if (ast.hp <= 0) {
+              createExplosion(ast.x, ast.y, '#66aa77', 18);
+              score += 80;
+              asteroids.splice(i, 1);
+              break;
+            }
+          }
+        }
+
+        if (Math.hypot(player.x - ast.x, player.y - ast.y) < player.radius + ast.radius - 3) {
+          createExplosion(player.x, player.y, player.color, 25, true);
+          state = 'GAMEOVER';
+          MusicEngine.stop();
+        }
+
+        if (ast.y > canvas.height + 40) asteroids.splice(i, 1);
+      }
+
+      // --- PICKUPY ULEPSZEŃ ---
       for (let i = pickups.length - 1; i >= 0; i--) {
         const p = pickups[i];
         p.y += p.vy;
         p.rot += 0.05;
 
-        // Pulsujący kryształ
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(p.rot);
@@ -878,14 +1318,12 @@
         ctx.fillRect(-4, -4, 8, 8);
         ctx.restore();
 
-        // Kolizja z graczem
-        const dist = Math.hypot(player.x - p.x, player.y - p.y);
-        if (dist < player.radius + 18) {
+        if (Math.hypot(player.x - p.x, player.y - p.y) < player.radius + 18) {
           playPowerupSound();
           if (player.weaponLevel < player.maxWeaponLevel) {
             player.weaponLevel++;
             targetTierNeeded = player.weaponLevel + 1;
-            retryUpgradeTimer = 0; // Ulepszenie zdobyte, kasujemy timer retry
+            retryUpgradeTimer = 0;
             addFloatingText(`BROŃ: POZIOM ${player.weaponLevel}!`, player.x, player.y - 30, '#00ffcc');
           } else {
             score += 500;
@@ -895,15 +1333,14 @@
           continue;
         }
 
-        // Gracz NIE ZŁAPAŁ ulepszenia – wypadło za dolną krawędź ekranu!
         if (p.y > canvas.height + 30) {
           pickups.splice(i, 1);
           addFloatingText('UPGRADE PRZEPADŁ!', canvas.width / 2, canvas.height - 120, '#ff0055');
-          // Włączamy szybki retry
           retryUpgradeTimer = RETRY_DELAY;
         }
       }
 
+      // --- RYSOWANIE GRACZA ---
       ctx.save();
       ctx.shadowBlur = 16;
       ctx.shadowColor = player.color;
@@ -916,19 +1353,35 @@
       ctx.closePath();
       ctx.fill();
 
-      // Silnik odrzutowy
+      // Silnik
       ctx.fillStyle = '#ff7700';
       ctx.beginPath();
       ctx.arc(player.x, player.y + player.radius * 0.6, 4 + Math.random() * 3, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
+      // --- WROGOWIE ---
       for (let i = enemies.length - 1; i >= 0; i--) {
         const en = enemies[i];
         en.y += en.speed;
         if (en.flash > 0) en.flash--;
 
-        // Jeśli to transporter ulepszenia – rysujemy specjalny pulsujący pierścień i napis
+        // Strzelanie wroga
+        if (en.shootCooldown !== 999) {
+          en.shootCooldown--;
+          if (en.shootCooldown <= 0 && en.y > 40 && en.y < canvas.height * 0.7) {
+            if (en.type === 'cruiser') {
+              fireEnemyBullet(en.x, en.y + en.radius, 0, 5.0, '#ff0055');
+              en.shootCooldown = 75;
+            } else if (en.type === 'titan') {
+              const angle = Math.atan2(player.y - en.y, player.x - en.x);
+              fireEnemyBullet(en.x, en.y + en.radius, Math.cos(angle) * 4.5, Math.sin(angle) * 4.5, '#bf00ff');
+              en.shootCooldown = 90;
+            }
+          }
+        }
+
+        // Transporter ulepszenia
         if (en.hasUpgrade) {
           ctx.save();
           ctx.strokeStyle = '#00ffff';
@@ -939,7 +1392,6 @@
           ctx.beginPath();
           ctx.arc(en.x, en.y, en.radius + 8 + Math.sin(now * 0.009) * 3, 0, Math.PI * 2);
           ctx.stroke();
-
           ctx.fillStyle = '#00ffff';
           ctx.font = 'bold 10px monospace';
           ctx.textAlign = 'center';
@@ -956,68 +1408,53 @@
         ctx.arc(en.x, en.y, en.radius, 0, Math.PI * 2);
         ctx.fill();
 
-        // Mini pasek HP (> 1 HP)
         if (en.maxHp > 1) {
           const hpWidth = en.radius * 2;
-          const hpHeight = 4;
           const hpX = en.x - en.radius;
           const hpY = en.y - en.radius - 6;
-
           ctx.fillStyle = 'rgba(0,0,0,0.6)';
-          ctx.fillRect(hpX, hpY, hpWidth, hpHeight);
+          ctx.fillRect(hpX, hpY, hpWidth, 4);
           ctx.fillStyle = '#00ffcc';
-          ctx.fillRect(hpX, hpY, hpWidth * (en.hp / en.maxHp), hpHeight);
+          ctx.fillRect(hpX, hpY, hpWidth * (en.hp / en.maxHp), 4);
         }
         ctx.restore();
 
-        // Kolizje pocisków z wrogami
+        // Kolizja pocisków gracza z wrogami
         for (let j = bullets.length - 1; j >= 0; j--) {
           const b = bullets[j];
-          const distBullet = Math.hypot(b.x - en.x, b.y - en.y);
-
-          if (distBullet < en.radius + b.radius) {
+          if (Math.hypot(b.x - en.x, b.y - en.y) < en.radius + b.radius) {
             en.hp -= b.damage;
             en.flash = 3;
             playHitSound();
 
-            if (b.canFragment) {
-              fragmentBullet(b.x, b.y);
-            }
-
+            if (b.canFragment) fragmentBullet(b.x, b.y);
             bullets.splice(j, 1);
 
-            // Zniszczenie wroga
             if (en.hp <= 0) {
               enemiesKilled++;
               const isHeavy = en.maxHp >= 5;
-              createExplosion(en.x, en.y, en.color, isHeavy ? 26 : 14, isHeavy);
+              createExplosion(en.x, en.y, en.color, isHeavy ? 24 : 14, isHeavy);
               score += en.scoreVal;
 
-              // Transporter zawsze upuszcza ulepszenie
-              if (en.hasUpgrade) {
-                pickups.push({ x: en.x, y: en.y, vy: 1.8, rot: 0 });
-              }
-
+              if (en.hasUpgrade) pickups.push({ x: en.x, y: en.y, vy: 1.8, rot: 0 });
               enemies.splice(i, 1);
               break;
             }
           }
         }
 
-        // Kolizja wroga ze statkiem gracza
-        const distPlayer = Math.hypot(player.x - en.x, player.y - en.y);
-        if (distPlayer < player.radius + en.radius - 3) {
+        // Kolizja wroga z graczem
+        if (Math.hypot(player.x - en.x, player.y - en.y) < player.radius + en.radius - 3) {
           createExplosion(player.x, player.y, player.color, 25, true);
           state = 'GAMEOVER';
+          MusicEngine.stop();
           if (score > highScore) {
             highScore = score;
             localStorage.setItem('cyber_dodge_hi', highScore);
           }
         }
 
-        // Ucieczka wroga za ekran
         if (en.y > canvas.height + 50) {
-          // Jeśli transporter uciekł – ulepszenie przepadło, włączamy retry!
           if (en.hasUpgrade) {
             addFloatingText('TRANSPORTER UCIEKŁ!', canvas.width / 2, canvas.height - 120, '#ff0055');
             retryUpgradeTimer = RETRY_DELAY;
@@ -1026,17 +1463,13 @@
         }
       }
 
+      // --- CZĄSTECZKI & PŁYWAJĄCE NAPISY ---
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.x += p.vx;
         p.y += p.vy;
         p.alpha -= 0.032;
-
-        if (p.alpha <= 0) {
-          particles.splice(i, 1);
-          continue;
-        }
-
+        if (p.alpha <= 0) { particles.splice(i, 1); continue; }
         ctx.save();
         ctx.globalAlpha = p.alpha;
         ctx.fillStyle = p.color;
@@ -1050,12 +1483,7 @@
         const ft = floatingTexts[i];
         ft.y += ft.vy;
         ft.alpha -= 0.02;
-
-        if (ft.alpha <= 0) {
-          floatingTexts.splice(i, 1);
-          continue;
-        }
-
+        if (ft.alpha <= 0) { floatingTexts.splice(i, 1); continue; }
         ctx.save();
         ctx.globalAlpha = ft.alpha;
         ctx.fillStyle = ft.color;
@@ -1065,54 +1493,52 @@
         ctx.restore();
       }
 
+      // --- HUD I WSKAŹNIKI ---
       const progress = Math.min(1, levelTimer / LEVEL_DURATION);
       const barWidth = canvas.width - 40;
 
-      // Pasek postępu poziomu (Gładki, bez zdradzających markerów)
       ctx.fillStyle = '#141a27';
       ctx.fillRect(20, 16, barWidth, 6);
-      ctx.fillStyle = '#00ffcc';
+      ctx.fillStyle = currentSector === 2 ? '#00ff88' : '#00ffcc';
       ctx.shadowBlur = 8;
-      ctx.shadowColor = '#00ffcc';
+      ctx.shadowColor = ctx.fillStyle;
       ctx.fillRect(20, 16, barWidth * progress, 6);
       ctx.shadowBlur = 0;
 
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 13px monospace';
       ctx.textAlign = 'left';
-      ctx.fillText(`POZIOM 1`, 20, 42);
+      ctx.fillText(`SEKTOR 0${currentSector}`, 20, 42);
 
       ctx.textAlign = 'right';
-      ctx.fillText(`FALA: ${Math.floor(progress * 100)}%`, canvas.width - 20, 42);
+      ctx.fillText(boss ? 'WALKA Z BOSSEM!' : `FALA: ${Math.floor(progress * 100)}%`, canvas.width - 20, 42);
 
-      // Wynik
       ctx.textAlign = 'left';
       ctx.fillText(`SCORE: ${score}`, 20, 68);
 
-      // Wskaźnik broni
       ctx.fillStyle = '#ffea00';
-      ctx.fillText(`BROŃ: LVL ${player.weaponLevel}${player.weaponLevel === 5 ? ' (MAX OVERDRIVE)' : ''}`, 20, 90);
+      ctx.fillText(`BROŃ: LVL ${player.weaponLevel}${player.weaponLevel === 5 ? ' (OVERDRIVE)' : ''}`, 20, 88);
 
-      // Jeśli trwa odliczanie retry – mała informacja
       if (retryUpgradeTimer > 0 && player.weaponLevel < player.maxWeaponLevel) {
         ctx.fillStyle = '#ff0055';
         ctx.font = '11px monospace';
-        ctx.fillText(`RETRY TRANSPORTERA ZA: ${Math.ceil(retryUpgradeTimer)}s`, 20, 108);
+        ctx.fillText(`RETRY TRANSPORTERA ZA: ${Math.ceil(retryUpgradeTimer)}s`, 20, 106);
       }
 
+      // --- EKRANY STANU ---
       if (state === 'WARMUP') {
         ctx.save();
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#00ffcc';
+        ctx.fillStyle = currentSector === 2 ? '#00ff88' : '#00ffcc';
         ctx.shadowBlur = 18;
-        ctx.shadowColor = '#00ffcc';
-        ctx.font = 'bold 26px monospace';
-        ctx.fillText('PRZYGOTUJ SIĘ!', canvas.width / 2, canvas.height / 2 - 25);
-
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.font = 'bold 24px monospace';
+        ctx.fillText(`SEKTOR 0${currentSector}`, canvas.width / 2, canvas.height / 2 - 30);
+        ctx.fillText('PRZYGOTUJ SIĘ!', canvas.width / 2, canvas.height / 2);
         ctx.shadowBlur = 0;
         ctx.font = 'bold 36px monospace';
         ctx.fillStyle = '#ffffff';
-        ctx.fillText(`${Math.ceil(warmupTimer)}`, canvas.width / 2, canvas.height / 2 + 25);
+        ctx.fillText(`${Math.ceil(warmupTimer)}`, canvas.width / 2, canvas.height / 2 + 45);
         ctx.restore();
       } else if (state === 'WON') {
         ctx.save();
@@ -1121,17 +1547,15 @@
         ctx.shadowBlur = 20;
         ctx.shadowColor = '#00ffcc';
         ctx.font = 'bold 28px monospace';
-        ctx.fillText('SEKTOR CZYSTY!', canvas.width / 2, canvas.height / 2 - 40);
-
+        ctx.fillText('MISJA UKOŃCZONA!', canvas.width / 2, canvas.height / 2 - 40);
         ctx.shadowBlur = 0;
         ctx.font = '18px monospace';
         ctx.fillStyle = '#ffffff';
-        ctx.fillText(`Poziom 1 ukończony!`, canvas.width / 2, canvas.height / 2);
+        ctx.fillText(`Wszystkie sektory oczyszczone!`, canvas.width / 2, canvas.height / 2);
         ctx.fillStyle = '#aaaaaa';
         ctx.fillText(`Zestrzelenia: ${enemiesKilled}`, canvas.width / 2, canvas.height / 2 + 25);
-        ctx.fillText(`Zdobyte punkty: ${score}`, canvas.width / 2, canvas.height / 2 + 48);
+        ctx.fillText(`Punkty: ${score}`, canvas.width / 2, canvas.height / 2 + 48);
         ctx.fillText(`Rekord: ${highScore}`, canvas.width / 2, canvas.height / 2 + 70);
-
         ctx.fillStyle = '#00ffcc';
         ctx.font = 'bold 16px monospace';
         ctx.fillText('Dotknij ekranu, by zagrać ponownie', canvas.width / 2, canvas.height / 2 + 115);
@@ -1144,7 +1568,6 @@
         ctx.shadowColor = '#ff0055';
         ctx.font = 'bold 30px monospace';
         ctx.fillText('KADŁUB ZNISZCZONY', canvas.width / 2, canvas.height / 2 - 40);
-
         ctx.shadowBlur = 0;
         ctx.font = '18px monospace';
         ctx.fillStyle = '#ffffff';
@@ -1152,7 +1575,6 @@
         ctx.fillText(`Zestrzelenia: ${enemiesKilled}`, canvas.width / 2, canvas.height / 2 + 22);
         ctx.fillStyle = '#888888';
         ctx.fillText(`Rekord: ${highScore}`, canvas.width / 2, canvas.height / 2 + 46);
-
         ctx.fillStyle = '#00ffcc';
         ctx.font = 'bold 15px monospace';
         ctx.fillText('Dotknij ekranu, by spróbować znowu', canvas.width / 2, canvas.height / 2 + 92);
