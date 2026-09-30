@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Cyber Dodge: Mission Architect - Level & Boss Editor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
+    * {
+      font-family: 'JetBrains Mono', monospace;
+      box-sizing: border-box;
+    }
+    /* Custom Neon Glows */
+    .glow-cyan {
+      box-shadow: 0 0 15px rgba(0, 255, 204, 0.25);
+    }
+    .glow-magenta {
+      box-shadow: 0 0 15px rgba(255, 0, 85, 0.25);
+    }
+    .glow-amber {
+      box-shadow: 0 0 15px rgba(255, 234, 0, 0.25);
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #05080e;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #172635;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #00ffcc;
+    }
+  </style>
+</head>
+<body class="bg-[#04060a] text-gray-200 min-h-screen flex flex-col selection:bg-cyan-500 selection:text-black">
+
+  <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <header class="border-b border-[#142331] bg-[#070b12]/90 backdrop-blur sticky top-0 z-40 px-4 py-3 sm:px-6">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></div>
+        <div>
+          <h1 class="text-base sm:text-lg font-extrabold text-cyan-400 tracking-wider flex items-center gap-2">
+            CYBER DODGE <span class="text-xs px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-700/50">MISSION ARCHITECT</span>
+          </h1>
+          <p class="text-[10px] text-gray-400">Edytor Kampanii, Cutscenek i Parametrów Bossów</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="btn-export-json" class="px-3 py-1.5 text-xs font-bold bg-cyan-950/60 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-300 rounded transition flex items-center gap-1.5 active:scale-95">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+          Eksportuj / Kopiuj
+        </button>
+        <button id="btn-import-json" class="px-3 py-1.5 text-xs font-bold bg-[#0d1622] hover:bg-[#152336] border border-gray-700 text-gray-300 rounded transition flex items-center gap-1.5 active:scale-95">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          Importuj JSON
+        </button>
+        <a href="index.html" class="px-3 py-1.5 text-xs font-bold bg-pink-950/60 hover:bg-pink-900 border border-pink-500/50 text-pink-300 rounded transition flex items-center gap-1.5 active:scale-95">
+          ▶ Testuj Grę
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="bg-[#060910] border-b border-[#121c27] px-4 py-2.5 sm:px-6">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-3 overflow-x-auto">
+      <div id="sector-tabs" class="flex items-center gap-2">
+        <!-- Dynamically injected tabs -->
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="btn-add-sector" class="px-2.5 py-1 text-xs font-bold bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/50 text-emerald-300 rounded transition flex items-center gap-1">
+          + Nowy Sektor
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- LEWA KOLUMNA: EDYTOR PARAMETRÓW (7 kolumn na dużym ekranie) -->
+    <div class="lg:col-span-7 flex flex-col gap-6">
+
+      <!-- SEKCJA 1: PARAMETRY OGÓLNE SEKTORA -->
+      <section class="bg-[#080d15] border border-[#162536] rounded-lg p-5">
+        <div class="flex items-center justify-between mb-4 border-b border-[#162536] pb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded bg-cyan-400"></span>
+            <h2 class="text-sm font-bold text-cyan-300 uppercase tracking-wider">1. Parametry Sektora & Fali</h2>
+          </div>
+          <button id="btn-delete-sector" class="text-xs text-red-400 hover:text-red-300 border border-red-900/60 bg-red-950/30 px-2 py-0.5 rounded transition">
+            Usuń Sektor
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <div>
+            <label class="block text-gray-400 mb-1">Nazwa Sektora / Tytuł:</label>
+            <input type="text" id="inp-sector-name" class="w-full bg-[#05080e] border border-[#1c3044] rounded px-3 py-2 text-cyan-300 focus:outline-none focus:border-cyan-500">
+          </div>
+
+          <div>
+            <label class="block text-gray-400 mb-1">Czas trwania fali do Bossa (sek.):</label>
+            <input type="number" id="inp-sector-duration" min="15" max="180" class="w-full bg-[#05080e] border border-[#1c3044] rounded px-3 py-2 text-cyan-300 focus:outline-none focus:border-cyan-500">
+          </div>
+
+          <div>
+            <label class="block text-gray-400 mb-1">Główny kolor akcentu:</label>
+            <div class="flex items-center gap-2">
+              <input type="color" id="inp-sector-color" class="w-8 h-8 rounded border border-gray-700 bg-transparent cursor-pointer">
+              <span id="txt-sector-color" class="text-gray-400 uppercase font-mono">#00ffcc</span>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-gray-400 mb-1">Środowisko i Zagrożenia:</label>
+            <label class="flex items-center gap-2 cursor-pointer mt-1.5">
+              <input type="checkbox" id="inp-sector-asteroids" class="w-4 h-4 accent-cyan-500 rounded bg-[#05080e]">
+              <span class="text-gray-300">Włącz deszcz wirujących asteroid</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- SEKCJA 2: KREATOR CUTSCENKI -->
+      <section class="bg-[#080d15] border border-[#162536] rounded-lg p-5">
+        <div class="flex items-center justify-between mb-4 border-b border-[#162536] pb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded bg-amber-400"></span>
+            <h2 class="text-sm font-bold text-amber-300 uppercase tracking-wider">2. Odprawa Taktyczna (Cutscenka)</h2>
+          </div>
+          <span class="text-[11px] text-gray-500">Wstęp przed sektorem</span>
+        </div>
+
+        <div class="space-y-4 text-xs">
+          <div>
+            <label class="block text-gray-400 mb-1">Wektorowa Ilustracja Taktyczna:</label>
+            <select id="sel-cutscene-illus" class="w-full bg-[#05080e] border border-[#1c3044] rounded px-3 py-2 text-amber-300 focus:outline-none focus:border-amber-500">
+              <option value="briefing">Radar Taktyczny + Wektor Wrogiego Myśliwca</option>
+              <option value="sector2_debrief">Pas Asteroid & Anomalie Grawitacyjne</option>
+              <option value="ai_core">Matryca Sztucznej Inteligencji [Rdzeń Vex]</option>
+            </select>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-gray-400">Linijki komunikatu (Terminal wojskowy):</label>
+              <button id="btn-add-line" class="text-amber-400 hover:text-amber-300 text-[11px]">+ Dodaj linijkę</button>
+            </div>
+            <div id="cutscene-lines-container" class="space-y-2">
+              <!-- Dynamically injected cutscene lines -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SEKCJA 3: DESIGNER BOSSA -->
+      <section class="bg-[#080d15] border border-[#162536] rounded-lg p-5">
+        <div class="flex items-center justify-between mb-4 border-b border-[#162536] pb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded bg-pink-500"></span>
+            <h2 class="text-sm font-bold text-pink-400 uppercase tracking-wider">3. Konstruktor Bossa Finałowego</h2>
+          </div>
+          <span class="text-[11px] text-gray-500">Pojawia się na 100% fali</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <div>
+            <label class="block text-gray-400 mb-1">Kryptonim Bossa:</label>
+            <input type="text" id="inp-boss-name" class="w-full bg-[#05080e] border border-[#1c3044] rounded px-3 py-2 text-pink-300 focus:outline-none focus:border-pink-500">
+          </div>
+
+          <div>
+            <label class="block text-gray-400 mb-1">Punkty Życia (HP):</label>
+            <input type="number" id="inp-boss-hp" min="30" max="600" class="w-full bg-[#05080e] border border-[#1c3044] rounded px-3 py-2 text-pink-300 focus:outline-none focus:border-pink-500">
+          </div>
+
+          <div>
+            <label class="block text-gray-400 mb-1">Barwa Kadłuba:</label>
+            <div class="flex items-center gap-2">
+              <input type="color" id="inp-boss-color" class="w-8 h-8 rounded border border-gray-700 bg-transparent cursor-pointer">
+              <span id="txt-boss-color" class="text-gray-400 uppercase font-mono">#ff0055</span>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-gray-400 mb-1">Prędkość manewrowa w poziomie:</label>
+            <input type="number" step="0.2" id="inp-boss-speed" min="1.0" max="5.0" class="w-full bg-[#05080e] border border-[#1c3044] rounded px-3 py-2 text-pink-300 focus:outline-none focus:border-pink-500">
+          </div>
+
+          <div>
+            <label class="block text-gray-400 mb-1">Interwał salwy (w klatkach):</label>
+            <input type="number" id="inp-boss-rate" min="20" max="100" class="w-full bg-[#05080e] border border-[#1c3044] rounded px-3 py-2 text-pink-300 focus:outline-none focus:border-pink-500">
+            <span class="text-[10px] text-gray-500">Mniej = gęstszy ostrzał</span>
+          </div>
+
+          <div>
+            <label class="block text-gray-400 mb-1">Próg aktywacji Fazy 2 (Overdrive):</label>
+            <select id="sel-boss-phase" class="w-full bg-[#05080e] border border-[#1c3044] rounded px-3 py-2 text-pink-300 focus:outline-none focus:border-pink-500">
+              <option value="0.5">Przy 50% HP (Standard)</option>
+              <option value="0.33">Przy 33% HP (Twardy finisz)</option>
+              <option value="0.66">Przy 66% HP (Szybka eskalacja)</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- PRAWA KOLUMNA: PODGLĄD SYMULATORA NA ŻYWO (5 kolumn) -->
+    <div class="lg:col-span-5 flex flex-col gap-6">
+
+      <!-- SYMULATOR WIZUALNY -->
+      <section class="bg-[#080d15] border border-[#162536] rounded-lg p-5 sticky top-20">
+        <div class="flex items-center justify-between mb-3 border-b border-[#162536] pb-2">
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+            <h2 class="text-sm font-bold text-emerald-400 uppercase tracking-wider">Symulator Taktyczny (Live)</h2>
+          </div>
+          <span class="text-[10px] bg-emerald-950/60 text-emerald-300 border border-emerald-700/40 px-2 py-0.5 rounded">AUTO-RENDER</span>
+        </div>
+
+        <!-- Canvas Podglądu Bossa i Kolorystyki -->
+        <div class="relative bg-[#04060a] border border-[#142331] rounded overflow-hidden aspect-[4/3] flex items-center justify-center">
+          <canvas id="preview-canvas" width="400" height="300" class="w-full h-full block"></canvas>
+          <div class="absolute top-2 left-2 text-[10px] text-gray-500 font-mono pointer-events-none">
+            MODE: <span id="lbl-preview-mode" class="text-cyan-400">RADAR & BOSS RADIAL</span>
+          </div>
+        </div>
+
+        <!-- Terminal Podglądu Cutscenki -->
+        <div class="mt-4 bg-[#030509] border border-[#152433] rounded p-3 text-xs">
+          <div class="text-[10px] font-bold text-cyan-400 mb-2 border-b border-[#101b26] pb-1 flex justify-between">
+            <span>> TERMINAL DOWÓDZTWA // PODGLĄD WIERSZY</span>
+            <span class="text-gray-500" id="txt-char-count">0 znaków</span>
+          </div>
+          <div id="preview-terminal" class="space-y-1.5 text-gray-300 font-mono text-[11px] min-h-[90px]">
+            <!-- Renderowane linie -->
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-[#142331] flex items-center justify-between text-xs text-gray-400">
+          <span>Sektorów w kampanii: <strong id="lbl-total-sectors" class="text-white">2</strong></span>
+          <span class="text-cyan-400 font-bold" id="lbl-est-time">Szac. czas: ~2:30 min</span>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- MODAL EKSPORTU I IMPORTU -->
+  <div id="modal-json" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-[#080d15] border border-cyan-500/40 rounded-xl max-w-2xl w-full p-6 glow-cyan flex flex-col max-h-[90vh]">
+      <div class="flex items-center justify-between pb-3 border-b border-gray-800 mb-4">
+        <h3 id="modal-title" class="text-base font-bold text-cyan-300 flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+          Konfiguracja Kampanii (JSON)
+        </h3>
+        <button id="btn-close-modal" class="text-gray-400 hover:text-white p-1 rounded hover:bg-gray-800 transition">✕</button>
+      </div>
+
+      <p id="modal-desc" class="text-xs text-gray-400 mb-3">
+        Skopiuj poniższy obiekt danych kampanii. Możesz go zapisać w pliku lub bezpośrednio wkleić do silnika gry.
+      </p>
+
+      <textarea id="modal-textarea" rows="12" class="w-full bg-[#030508] border border-gray-800 rounded p-3 text-xs font-mono text-cyan-400 focus:outline-none focus:border-cyan-500 resize-none select-all"></textarea>
+
+      <div class="flex items-center justify-end gap-3 mt-4 pt-3 border-t border-gray-800">
+        <button id="btn-modal-action" class="px-4 py-2 text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-black rounded transition active:scale-95">
+          Kopiuj do Schowka
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // --- STAN POCZĄTKOWY KAMPANII ---
+    // ==========================================
+    const DEFAULT_CAMPAIGN = [
+      {
+        id: 1,
+        name: "SEKTOR 01: PERYMETR ROJU",
+        duration: 44,
+        color: "#00ffcc",
+        hasAsteroids: false,
+        cutscene: {
+          illustration: "briefing",
+          lines: [
+            "SYSTEMY BOJOWE: ONLINE. SEKTOR 01.",
+            "ALARM: Formacja wrogich dronów naruszyła perymetr!",
+            "ROZKAZ: Zniszcz wrogów i flagowy rdzeń TITAN-PRIME.",
+            "WSKAZÓWKA: Przechwytuj kontenery zasobów z transporterów!"
+          ]
+        },
+        boss: {
+          name: "TITAN-PRIME [RDZEŃ 01]",
+          hp: 120,
+          color: "#ff0055",
+          speedX: 2.2,
+          shootRate: 55,
+          phase2Threshold: 0.5
+        }
+      },
+      {
+        id: 2,
+        name: "SEKTOR 02: PAS ASTEROID",
+        duration: 48,
+        color: "#00ff88",
+        hasAsteroids: true,
+        cutscene: {
+          illustration: "sector2_debrief",
+          lines: [
+            "TITAN-PRIME ZNISZCZONY! SEKTOR 01 CZYSTY.",
+            "ALARM: Niedobitki floty uciekają w Pas Asteroid.",
+            "ROZKAZ: Oczyść Sektor 02. Uwaga na gęsty gruz!",
+            "SKOK HIPERPRZESTRZENNY ZA 3... 2... 1..."
+          ]
+        },
+        boss: {
+          name: "DREADNOUGHT VEX",
+          hp: 180,
+          color: "#ff9900",
+          speedX: 2.6,
+          shootRate: 46,
+          phase2Threshold: 0.5
+        }
+      }
+    ];
+
+    let campaign = JSON.parse(JSON.stringify(DEFAULT_CAMPAIGN));
+    let activeSectorIndex = 0;
+
+    // Elementy UI
+    const sectorTabsEl = document.getElementById('sector-tabs');
+    const btnAddSector = document.getElementById('btn-add-sector');
+    const btnDeleteSector = document.getElementById('btn-delete-sector');
+
+    const inpSectorName = document.getElementById('inp-sector-name');
+    const inpSectorDuration = document.getElementById('inp-sector-duration');
+    const inpSectorColor = document.getElementById('inp-sector-color');
+    const txtSectorColor = document.getElementById('txt-sector-color');
+    const inpSectorAsteroids = document.getElementById('inp-sector-asteroids');
+
+    const selCutsceneIllus = document.getElementById('sel-cutscene-illus');
+    const cutsceneLinesContainer = document.getElementById('cutscene-lines-container');
+    const btnAddLine = document.getElementById('btn-add-line');
+
+    const inpBossName = document.getElementById('inp-boss-name');
+    const inpBossHp = document.getElementById('inp-boss-hp');
+    const inpBossColor = document.getElementById('inp-boss-color');
+    const txtBossColor = document.getElementById('txt-boss-color');
+    const inpBossSpeed = document.getElementById('inp-boss-speed');
+    const inpBossRate = document.getElementById('inp-boss-rate');
+    const selBossPhase = document.getElementById('sel-boss-phase');
+
+    const previewTerminal = document.getElementById('preview-terminal');
+    const txtCharCount = document.getElementById('txt-char-count');
+    const lblTotalSectors = document.getElementById('lbl-total-sectors');
+    const lblEstTime = document.getElementById('lbl-est-time');
+
+    const modalJson = document.getElementById('modal-json');
+    const modalTitle = document.getElementById('modal-title');
+    const modalDesc = document.getElementById('modal-desc');
+    const modalTextarea = document.getElementById('modal-textarea');
+    const btnModalAction = document.getElementById('btn-modal-action');
+    const btnCloseModal = document.getElementById('btn-close-modal');
+    const btnExportJson = document.getElementById('btn-export-json');
+    const btnImportJson = document.getElementById('btn-import-json');
+
+    function showToast(message, type = 'cyan') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const colorClasses = type === 'pink' 
+        ? 'border-pink-500/80 bg-pink-950/90 text-pink-300' 
+        : type === 'emerald' 
+          ? 'border-emerald-500/80 bg-emerald-950/90 text-emerald-300'
+          : 'border-cyan-500/80 bg-cyan-950/90 text-cyan-300';
+      
+      toast.className = `border px-4 py-2.5 rounded shadow-lg text-xs font-mono font-bold flex items-center gap-2 backdrop-blur transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto ${colorClasses}`;
+      toast.innerHTML = `<span>●</span> <span>${message}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('translate-y-2', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 3200);
+    }
+
+    function copyToClipboard(text) {
+      const el = document.createElement('textarea');
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+    }
+
+    function renderTabs() {
+      sectorTabsEl.innerHTML = '';
+      campaign.forEach((sec, idx) => {
+        const btn = document.createElement('button');
+        const isActive = idx === activeSectorIndex;
+        btn.className = `px-3 py-1 text-xs font-bold rounded transition border shrink-0 flex items-center gap-1.5 ${
+          isActive 
+            ? 'bg-cyan-950/80 border-cyan-400 text-cyan-300 shadow-sm' 
+            : 'bg-[#0a111a] border-gray-800 text-gray-400 hover:text-white hover:border-gray-600'
+        }`;
+        btn.innerHTML = `<span class="w-1.5 h-1.5 rounded-full" style="background:${sec.color}"></span> Sektor 0${idx + 1}`;
+        btn.onclick = () => {
+          activeSectorIndex = idx;
+          populateForm();
+          renderTabs();
+        };
+        sectorTabsEl.appendChild(btn);
+      });
+
+      lblTotalSectors.textContent = campaign.length;
+      const totalSecs = campaign.reduce((acc, c) => acc + (c.duration || 40) + 18, 0);
+      const mins = Math.floor(totalSecs / 60);
+      const secs = totalSecs % 60;
+      lblEstTime.textContent = `Szac. czas: ~${mins}:${secs < 10 ? '0' : ''}${secs} min`;
+    }
+
+    function populateForm() {
+      const current = campaign[activeSectorIndex];
+      if (!current) return;
+
+      // 1. Ogólne
+      inpSectorName.value = current.name || '';
+      inpSectorDuration.value = current.duration || 40;
+      inpSectorColor.value = current.color || '#00ffcc';
+      txtSectorColor.textContent = current.color || '#00ffcc';
+      inpSectorAsteroids.checked = !!current.hasAsteroids;
+
+      // 2. Cutscenka
+      selCutsceneIllus.value = current.cutscene?.illustration || 'briefing';
+      renderCutsceneLines();
+
+      // 3. Boss
+      inpBossName.value = current.boss?.name || 'TITAN-PRIME';
+      inpBossHp.value = current.boss?.hp || 100;
+      inpBossColor.value = current.boss?.color || '#ff0055';
+      txtBossColor.textContent = current.boss?.color || '#ff0055';
+      inpBossSpeed.value = current.boss?.speedX || 2.0;
+      inpBossRate.value = current.boss?.shootRate || 50;
+      selBossPhase.value = current.boss?.phase2Threshold || 0.5;
+
+      updateTerminalPreview();
+    }
+
+    function renderCutsceneLines() {
+      cutsceneLinesContainer.innerHTML = '';
+      const current = campaign[activeSectorIndex];
+      const lines = current.cutscene?.lines || [];
+
+      lines.forEach((line, idx) => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-2';
+
+        const prefix = document.createElement('span');
+        prefix.className = 'text-amber-500/70 font-mono text-[10px] w-4 shrink-0';
+        prefix.textContent = `0${idx + 1}`;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = line;
+        input.className = 'flex-1 bg-[#05080e] border border-[#1c3044] rounded px-2.5 py-1.5 text-gray-200 text-xs focus:outline-none focus:border-amber-500';
+        input.oninput = (e) => {
+          campaign[activeSectorIndex].cutscene.lines[idx] = e.target.value;
+          updateTerminalPreview();
+        };
+
+        const delBtn = document.createElement('button');
+        delBtn.innerHTML = '✕';
+        delBtn.className = 'text-gray-500 hover:text-red-400 px-1.5 py-0.5 text-xs';
+        delBtn.onclick = () => {
+          campaign[activeSectorIndex].cutscene.lines.splice(idx, 1);
+          renderCutsceneLines();
+          updateTerminalPreview();
+        };
+
+        row.appendChild(prefix);
+        row.appendChild(input);
+        row.appendChild(delBtn);
+        cutsceneLinesContainer.appendChild(row);
+      });
+    }
+
+    function updateTerminalPreview() {
+      const current = campaign[activeSectorIndex];
+      previewTerminal.innerHTML = '';
+      let totalChars = 0;
+
+      if (!current || !current.cutscene || !current.cutscene.lines) return;
+
+      current.cutscene.lines.forEach((line) => {
+        totalChars += line.length;
+        const p = document.createElement('p');
+        p.className = 'leading-relaxed break-words';
+        p.innerHTML = `<span class="text-amber-400">></span> <span class="text-cyan-300/90">${line}</span>`;
+        previewTerminal.appendChild(p);
+      });
+
+      txtCharCount.textContent = `${totalChars} znaków`;
+    }
+
+    inpSectorName.oninput = (e) => { campaign[activeSectorIndex].name = e.target.value; };
+    inpSectorDuration.oninput = (e) => { campaign[activeSectorIndex].duration = parseInt(e.target.value) || 30; };
+    inpSectorColor.oninput = (e) => { 
+      campaign[activeSectorIndex].color = e.target.value;
+      txtSectorColor.textContent = e.target.value;
+      renderTabs();
+    };
+    inpSectorAsteroids.onchange = (e) => { campaign[activeSectorIndex].hasAsteroids = e.target.checked; };
+
+    selCutsceneIllus.onchange = (e) => {
+      campaign[activeSectorIndex].cutscene.illustration = e.target.value;
+    };
+
+    btnAddLine.onclick = () => {
+      if (!campaign[activeSectorIndex].cutscene.lines) campaign[activeSectorIndex].cutscene.lines = [];
+      campaign[activeSectorIndex].cutscene.lines.push("NOWY ROZKAZ OPERACYJNY...");
+      renderCutsceneLines();
+      updateTerminalPreview();
+      showToast('Dodano linijkę dialogu', 'amber');
+    };
+
+    inpBossName.oninput = (e) => { campaign[activeSectorIndex].boss.name = e.target.value; };
+    inpBossHp.oninput = (e) => { campaign[activeSectorIndex].boss.hp = parseInt(e.target.value) || 50; };
+    inpBossColor.oninput = (e) => { 
+      campaign[activeSectorIndex].boss.color = e.target.value;
+      txtBossColor.textContent = e.target.value;
+    };
+    inpBossSpeed.oninput = (e) => { campaign[activeSectorIndex].boss.speedX = parseFloat(e.target.value) || 2.0; };
+    inpBossRate.oninput = (e) => { campaign[activeSectorIndex].boss.shootRate = parseInt(e.target.value) || 50; };
+    selBossPhase.onchange = (e) => { campaign[activeSectorIndex].boss.phase2Threshold = parseFloat(e.target.value) || 0.5; };
+
+    btnAddSector.onclick = () => {
+      const nextNum = campaign.length + 1;
+      const newSector = {
+        id: nextNum,
+        name: `SEKTOR 0${nextNum}: NOWA ANOMALIA`,
+        duration: 45,
+        color: nextNum % 2 === 0 ? "#ffaa00" : "#9900ff",
+        hasAsteroids: true,
+        cutscene: {
+          illustration: "briefing",
+          lines: [
+            `DOWÓDZTWO: WEJŚCIE W SEKTOR 0${nextNum}.`,
+            "Wykryto sygnatury wrogiej floty.",
+            "Wyeliminuj cele priorytetowe!"
+          ]
+        },
+        boss: {
+          name: `NEXUS GUARDIAN 0${nextNum}`,
+          hp: 120 + nextNum * 30,
+          color: "#ff0055",
+          speedX: 2.4,
+          shootRate: 50,
+          phase2Threshold: 0.5
+        }
+      };
+
+      campaign.push(newSector);
+      activeSectorIndex = campaign.length - 1;
+      renderTabs();
+      populateForm();
+      showToast(`Utworzono Sektor 0${nextNum}!`, 'emerald');
+    };
+
+    btnDeleteSector.onclick = () => {
+      if (campaign.length <= 1) {
+        showToast('Nie możesz usunąć jedynego sektora!', 'pink');
+        return;
+      }
+      campaign.splice(activeSectorIndex, 1);
+      activeSectorIndex = Math.max(0, activeSectorIndex - 1);
+      renderTabs();
+      populateForm();
+      showToast('Sektor został usunięty.', 'pink');
+    };
+
+    const previewCanvas = document.getElementById('preview-canvas');
+    const pCtx = previewCanvas.getContext('2d');
+    let previewTime = 0;
+
+    function renderSimulator() {
+      previewTime += 0.02;
+      const w = previewCanvas.width;
+      const h = previewCanvas.height;
+      const current = campaign[activeSectorIndex];
+
+      pCtx.fillStyle = '#04070d';
+      pCtx.fillRect(0, 0, w, h);
+
+      if (!current) {
+        requestAnimationFrame(renderSimulator);
+        return;
+      }
+
+      // Siatka taktyczna w tle
+      pCtx.strokeStyle = 'rgba(0, 255, 204, 0.08)';
+      pCtx.lineWidth = 1;
+      for (let x = 0; x < w; x += 25) {
+        pCtx.beginPath();
+        pCtx.moveTo(x, 0);
+        pCtx.lineTo(x, h);
+        pCtx.stroke();
+      }
+      for (let y = 0; y < h; y += 25) {
+        pCtx.beginPath();
+        pCtx.moveTo(0, y);
+        pCtx.lineTo(w, y);
+        pCtx.stroke();
+      }
+
+      const centerX = w / 2;
+      const centerY = h / 2 - 10;
+
+      // 1. Rysowanie wybranego typu ilustracji
+      const illus = current.cutscene?.illustration || 'briefing';
+      if (illus === 'briefing') {
+        pCtx.strokeStyle = 'rgba(0, 229, 255, 0.25)';
+        pCtx.beginPath();
+        pCtx.arc(centerX, centerY, 55, 0, Math.PI * 2);
+        pCtx.arc(centerX, centerY, 90, 0, Math.PI * 2);
+        pCtx.stroke();
+
+        const sweep = previewTime * 2;
+        pCtx.strokeStyle = current.color || '#00ffcc';
+        pCtx.beginPath();
+        pCtx.moveTo(centerX, centerY);
+        pCtx.lineTo(centerX + Math.cos(sweep) * 95, centerY + Math.sin(sweep) * 95);
+        pCtx.stroke();
+      } else if (illus === 'sector2_debrief') {
+        pCtx.strokeStyle = '#ffea00';
+        pCtx.lineWidth = 1.5;
+        for (let a = 0; a < 6; a++) {
+          const ax = centerX + Math.cos(a * 1.05 + previewTime * 0.8) * (50 + a * 8);
+          const ay = centerY + Math.sin(a * 1.05 + previewTime * 0.8) * (30 + a * 6);
+          pCtx.strokeRect(ax - 8, ay - 8, 16, 16);
+        }
+      } else if (illus === 'ai_core') {
+        pCtx.strokeStyle = '#bf00ff';
+        pCtx.lineWidth = 2;
+        pCtx.save();
+        pCtx.translate(centerX, centerY);
+        pCtx.rotate(previewTime);
+        pCtx.strokeRect(-40, -40, 80, 80);
+        pCtx.rotate(-previewTime * 2);
+        pCtx.strokeRect(-25, -25, 50, 50);
+        pCtx.restore();
+      }
+
+      // 2. Rysowanie Modelu Bossa
+      const boss = current.boss || {};
+      const bossColor = boss.color || '#ff0055';
+      const bossHoverY = centerY + Math.sin(previewTime * 3) * 6;
+
+      pCtx.save();
+      pCtx.shadowBlur = 14;
+      pCtx.shadowColor = bossColor;
+      pCtx.fillStyle = bossColor;
+      pCtx.beginPath();
+      pCtx.moveTo(centerX, bossHoverY + 28);
+      pCtx.lineTo(centerX + 48, bossHoverY - 24);
+      pCtx.lineTo(centerX + 18, bossHoverY - 10);
+      pCtx.lineTo(centerX, bossHoverY - 18);
+      pCtx.lineTo(centerX - 18, bossHoverY - 10);
+      pCtx.lineTo(centerX - 48, bossHoverY - 24);
+      pCtx.closePath();
+      pCtx.fill();
+
+      // Rdzeń Bossa
+      pCtx.fillStyle = '#00ffff';
+      pCtx.beginPath();
+      pCtx.arc(centerX, bossHoverY, 7 + Math.sin(previewTime * 6) * 2, 0, Math.PI * 2);
+      pCtx.fill();
+      pCtx.restore();
+
+      // Pasek HP Bossa w symulatorze
+      const barW = w - 60;
+      pCtx.fillStyle = 'rgba(0,0,0,0.6)';
+      pCtx.fillRect(30, h - 35, barW, 6);
+      pCtx.fillStyle = bossColor;
+      pCtx.fillRect(30, h - 35, barW * 0.85, 6);
+      pCtx.strokeStyle = '#ffffff';
+      pCtx.strokeRect(30, h - 35, barW, 6);
+
+      pCtx.fillStyle = '#ffffff';
+      pCtx.font = 'bold 9px monospace';
+      pCtx.textAlign = 'left';
+      pCtx.fillText(`PREVIEW: ${boss.name || 'BOSS'} [${boss.hp || 100} HP]`, 30, h - 42);
+
+      requestAnimationFrame(renderSimulator);
+    }
+    renderSimulator();
+
+    let modalMode = 'EXPORT';
+
+    btnExportJson.onclick = () => {
+      modalMode = 'EXPORT';
+      modalTitle.innerHTML = 'Eksporter Kampanii (JSON)';
+      modalDesc.textContent = 'Skopiuj ten JSON lub wklej go do kodu gry. Zawiera pełną strukturę sektorów, dialogów i bossów.';
+      modalTextarea.value = JSON.stringify(campaign, null, 2);
+      btnModalAction.textContent = 'Kopiuj JSON do Schowka';
+      modalJson.classList.remove('hidden');
+    };
+
+    btnImportJson.onclick = () => {
+      modalMode = 'IMPORT';
+      modalTitle.innerHTML = 'Importer Kampanii (Wklej JSON)';
+      modalDesc.textContent = 'Wklej wcześniej wyeksportowany obiekt JSON z kampanią, aby załadować wszystkie sektory do edytora.';
+      modalTextarea.value = '';
+      btnModalAction.textContent = 'Wczytaj do Edytora';
+      modalJson.classList.remove('hidden');
+    };
+
+    btnCloseModal.onclick = () => {
+      modalJson.classList.add('hidden');
+    };
+
+    btnModalAction.onclick = () => {
+      if (modalMode === 'EXPORT') {
+        copyToClipboard(modalTextarea.value);
+        showToast('Skopiowano JSON do schowka!', 'cyan');
+        modalJson.classList.add('hidden');
+      } else {
+        try {
+          const parsed = JSON.parse(modalTextarea.value);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            campaign = parsed;
+            activeSectorIndex = 0;
+            renderTabs();
+            populateForm();
+            modalJson.classList.add('hidden');
+            showToast('Pomyślnie załadowano kampanię z JSON!', 'emerald');
+          } else {
+            showToast('Błąd: JSON musi być tablicą sektorów!', 'pink');
+          }
+        } catch (err) {
+          showToast('Błąd składni JSON!', 'pink');
+        }
+      }
+    };
+
+    // Inicjalizacja formularza
+    renderTabs();
+    populateForm();
+  </script>
+</body>
+</html>
