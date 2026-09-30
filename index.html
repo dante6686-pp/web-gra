@@ -536,10 +536,11 @@
         ctx.rect(14, 14, width - 28, illusHeight);
         ctx.clip();
 
-        ctx.fillStyle = currentSector === 2 ? '#0b130e' : '#080d18';
+        const activeSec = getCurSector();
+        ctx.fillStyle = currentSectorIndex % 2 === 1 ? '#0b130e' : '#080d18';
         ctx.fillRect(14, 14, width - 28, illusHeight);
 
-        const activeColor = getCurSector().color || '#00ffcc';
+        const activeColor = activeSec.color || '#00ffcc';
         const gridColor = `${activeColor}22`;
         ctx.strokeStyle = gridColor;
         ctx.lineWidth = 1;
@@ -898,37 +899,6 @@
 
       MusicEngine.isBoss = false;
       startSectorCutscene(currentSectorIndex);
-    }
-
-    function startSector2() {
-      currentSector = 2;
-      enemies = [];
-      bullets = [];
-      enemyBullets = [];
-      particles = [];
-      pickups = [];
-      floatingTexts = [];
-      asteroids = [];
-      boss = null;
-      levelTimer = 0;
-      warmupTimer = WARMUP_DURATION;
-      state = 'WARMUP';
-      targetTierNeeded = Math.min(5, player.weaponLevel + 1);
-      retryUpgradeTimer = 0;
-      bossWarningTimer = 0;
-      spawnTimer = 0;
-      asteroidTimer = 0;
-
-      UPGRADE_MILESTONES.forEach(m => {
-        m.triggered = player.weaponLevel >= m.targetTier;
-      });
-
-      player.x = canvas.width / 2;
-      player.y = canvas.height * 0.78;
-      isTouching = false;
-
-      MusicEngine.isBoss = false;
-      MusicEngine.start();
     }
 
     function shootWeapons() {
