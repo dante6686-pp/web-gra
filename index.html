@@ -753,6 +753,13 @@
           ctx.fillText('ROZPOCZNIJ MISJĘ', canvas.width / 2, btnY + 33);
         }
 
+        // Tymczasowy znacznik potwierdzający wdrożenie gałęzi testowej
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(0, 255, 204, 0.7)';
+        ctx.font = '11px monospace';
+        ctx.letterSpacing = '2px';
+        ctx.fillText('BUILD: GPT BRANCH', canvas.width / 2, canvas.height - 22);
+
         ctx.restore();
         ctx.restore();
         requestAnimationFrame(loop);
