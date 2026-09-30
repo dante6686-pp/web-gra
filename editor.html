@@ -63,7 +63,7 @@
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
           Importuj JSON
         </button>
-        <a href="index.html" class="px-3 py-1.5 text-xs font-bold bg-pink-950/60 hover:bg-pink-900 border border-pink-500/50 text-pink-300 rounded transition flex items-center gap-1.5 active:scale-95">
+        <a id="btn-test-game" href="index.html" class="px-3 py-1.5 text-xs font-bold bg-pink-950/60 hover:bg-pink-900 border border-pink-500/50 text-pink-300 rounded transition flex items-center gap-1.5 active:scale-95">
           ▶ Testuj Grę
         </a>
       </div>
@@ -755,6 +755,20 @@
         }
       }
     };
+
+    // Przekierowanie do gry z zakodowaną w URL hash kampanią
+    const btnTestGame = document.getElementById('btn-test-game');
+    if (btnTestGame) {
+      btnTestGame.addEventListener('click', (e) => {
+        e.preventDefault();
+        try {
+          const payload = encodeURIComponent(JSON.stringify(campaign));
+          window.location.href = `index.html#campaign=${payload}`;
+        } catch (err) {
+          window.location.href = 'index.html';
+        }
+      });
+    }
 
     // Inicjalizacja formularza
     renderTabs();
