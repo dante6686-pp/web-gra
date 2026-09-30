@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Cyber Dodge</title>
+  <title>Cyber Dodge: Overdrive</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
-    body { background: #0b0e14; overflow: hidden; font-family: monospace; }
+    body { background: #07090e; overflow: hidden; font-family: monospace; }
     canvas { display: block; width: 100vw; height: 100vh; }
   </style>
 </head>
@@ -24,65 +24,162 @@
     window.addEventListener('resize', resize);
     resize();
 
-    // Gracz
+    // --- SYNTEZATOR AUDIO (Czysty kod, zero plików mp3) ---
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) audioCtx = new AudioCtx();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playLaserSound() {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(850, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.07);
+      gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.07);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.07);
+    }
+
+    function playExplodeSound() {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(25, audioCtx.currentTime + 0.18);
+      gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.18);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.18);
+    }
+
+    // --- STAN GRY ---
     const player = {
       x: canvas.width / 2,
-      y: canvas.height - 120,
-      radius: 18,
+      y: canvas.height - 130,
+      radius: 16,
       color: '#00ffcc'
     };
 
     let enemies = [];
+    let bullets = [];
+    let particles = [];
     let score = 0;
+    let highScore = parseInt(localStorage.getItem('cyber_dodge_hi') || 0);
     let gameOver = false;
-    let enemySpeed = 4;
+    let enemySpeed = 4.2;
     let spawnTimer = 0;
+    let shootTimer = 0;
+    let screenShake = 0;
+    let isTouching = false;
 
-    // Sterowanie dotykiem / palcem
-    function movePlayer(e) {
+    // Sterowanie dotykowe
+    function updateTouch(e) {
+      initAudio();
       const touch = e.touches ? e.touches[0] : e;
       player.x = touch.clientX;
-      player.y = touch.clientY - 40; // lekko nad palcem, żeby go widzieć
+      player.y = touch.clientY - 45; // lekki margines, żeby palec nie zasłaniał gracza
+      isTouching = true;
       if (gameOver) resetGame();
     }
 
-    window.addEventListener('touchmove', movePlayer, { passive: false });
-    window.addEventListener('touchstart', movePlayer, { passive: false });
-    window.addEventListener('mousemove', (e) => { if (e.buttons) movePlayer(e); });
+    window.addEventListener('touchstart', updateTouch, { passive: false });
+    window.addEventListener('touchmove', updateTouch, { passive: false });
+    window.addEventListener('touchend', () => { isTouching = false; });
+    window.addEventListener('mousedown', (e) => { updateTouch(e); isTouching = true; });
+    window.addEventListener('mousemove', (e) => { if (e.buttons) updateTouch(e); });
+    window.addEventListener('mouseup', () => { isTouching = false; });
 
     function resetGame() {
       enemies = [];
+      bullets = [];
+      particles = [];
       score = 0;
-      enemySpeed = 4;
+      enemySpeed = 4.2;
       gameOver = false;
       player.x = canvas.width / 2;
-      player.y = canvas.height - 120;
+      player.y = canvas.height - 130;
     }
 
+    function createExplosion(x, y, color) {
+      screenShake = 10;
+      playExplodeSound();
+      for (let i = 0; i < 14; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 5 + 2;
+        particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: Math.random() * 3 + 2,
+          color: color,
+          alpha: 1
+        });
+      }
+    }
+
+    // --- PĘTLA GŁÓWNA ---
     function loop() {
-      ctx.fillStyle = 'rgba(11, 14, 20, 0.3)';
+      // Screen Shake
+      ctx.save();
+      if (screenShake > 0) {
+        ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
+        screenShake *= 0.88;
+        if (screenShake < 0.5) screenShake = 0;
+      }
+
+      // Tło z lekkim smużeniem (efekt motion blur)
+      ctx.fillStyle = 'rgba(7, 9, 14, 0.35)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       if (!gameOver) {
-        score++;
         spawnTimer++;
+        shootTimer++;
 
-        // Co jakiś czas zwiększamy trudność
-        if (score % 500 === 0) enemySpeed += 0.8;
+        // Auto-strzelanie gdy trzymasz palec
+        if (isTouching && shootTimer % 8 === 0) {
+          bullets.push({ x: player.x - 7, y: player.y - 12 });
+          bullets.push({ x: player.x + 7, y: player.y - 12 });
+          playLaserSound();
+        }
 
-        // Spawnowanie przeszkód
-        if (spawnTimer % 20 === 0) {
+        // Spawnowanie wrogów
+        if (spawnTimer % 22 === 0) {
           enemies.push({
-            x: Math.random() * (canvas.width - 20) + 10,
-            y: -20,
-            radius: Math.random() * 12 + 10,
-            color: '#ff0055'
+            x: Math.random() * (canvas.width - 40) + 20,
+            y: -25,
+            radius: Math.random() * 10 + 12,
+            color: Math.random() > 0.25 ? '#ff0055' : '#ff9900'
           });
         }
 
-        // Rysowanie gracza (neonowy krążek)
+        // Rysowanie i ruch pocisków
+        for (let i = bullets.length - 1; i >= 0; i--) {
+          const b = bullets[i];
+          b.y -= 14;
+
+          ctx.fillStyle = '#00ffff';
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = '#00ffff';
+          ctx.fillRect(b.x - 2, b.y, 4, 12);
+
+          if (b.y < -20) bullets.splice(i, 1);
+        }
+
+        // Rysowanie i logika gracza
         ctx.save();
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 18;
         ctx.shadowColor = player.color;
         ctx.fillStyle = player.color;
         ctx.beginPath();
@@ -90,13 +187,14 @@
         ctx.fill();
         ctx.restore();
 
-        // Przeszkody i kolizje
+        // Obsługa wrogów
         for (let i = enemies.length - 1; i >= 0; i--) {
           const en = enemies[i];
           en.y += enemySpeed;
 
+          // Rysowanie wroga
           ctx.save();
-          ctx.shadowBlur = 10;
+          ctx.shadowBlur = 12;
           ctx.shadowColor = en.color;
           ctx.fillStyle = en.color;
           ctx.beginPath();
@@ -104,33 +202,84 @@
           ctx.fill();
           ctx.restore();
 
-          // Detekcja uderzenia
-          const dist = Math.hypot(player.x - en.x, player.y - en.y);
-          if (dist < player.radius + en.radius) {
-            gameOver = true;
+          // Trafienie pociskiem
+          for (let j = bullets.length - 1; j >= 0; j--) {
+            const b = bullets[j];
+            const distBullet = Math.hypot(b.x - en.x, b.y - en.y);
+            if (distBullet < en.radius + 6) {
+              createExplosion(en.x, en.y, en.color);
+              score += 50;
+              enemies.splice(i, 1);
+              bullets.splice(j, 1);
+              break;
+            }
           }
 
-          if (en.y > canvas.height + 30) enemies.splice(i, 1);
+          // Kolizja z graczem
+          const distPlayer = Math.hypot(player.x - en.x, player.y - en.y);
+          if (distPlayer < player.radius + en.radius - 2) {
+            createExplosion(player.x, player.y, player.color);
+            gameOver = true;
+            if (score > highScore) {
+              highScore = score;
+              localStorage.setItem('cyber_dodge_hi', highScore);
+            }
+          }
+
+          if (en.y > canvas.height + 40) enemies.splice(i, 1);
         }
 
-        // Punkty
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 20px monospace';
-        ctx.fillText(`SCORE: ${score}`, 20, 45);
+        // Przyspieszanie gry wraz z wynikiem
+        if (score > 0 && score % 400 === 0) enemySpeed += 0.05;
+
+        // UI / Liczniki
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowBlur = 0;
+        ctx.font = 'bold 18px monospace';
+        ctx.fillText(`SCORE: ${score}`, 20, 40);
+        ctx.fillStyle = '#888888';
+        ctx.fillText(`HI: ${highScore}`, 20, 65);
+
       } else {
-        // Game Over
-        ctx.fillStyle = '#fff';
+        // Ekran Game Over
+        ctx.fillStyle = '#ffffff';
         ctx.textAlign = 'center';
-        ctx.font = 'bold 30px monospace';
-        ctx.fillText('KONIEC GRY', canvas.width / 2, canvas.height / 2 - 20);
-        ctx.font = '16px monospace';
-        ctx.fillStyle = '#aaa';
-        ctx.fillText(`Wynik: ${score}`, canvas.width / 2, canvas.height / 2 + 15);
+        ctx.font = 'bold 32px monospace';
+        ctx.fillText('ZMASAKROWANY!', canvas.width / 2, canvas.height / 2 - 30);
+
+        ctx.font = '18px monospace';
+        ctx.fillStyle = '#aaaaaa';
+        ctx.fillText(`Wynik: ${score}`, canvas.width / 2, canvas.height / 2 + 10);
+        ctx.fillText(`Rekord: ${highScore}`, canvas.width / 2, canvas.height / 2 + 35);
+
         ctx.fillStyle = '#00ffcc';
-        ctx.fillText('Dotknij ekranu, by zagrać znowu', canvas.width / 2, canvas.height / 2 + 55);
+        ctx.font = 'bold 16px monospace';
+        ctx.fillText('Dotknij ekranu, by zresetować', canvas.width / 2, canvas.height / 2 + 80);
         ctx.textAlign = 'left';
       }
 
+      // Cząsteczki wybuchów
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.035;
+
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      ctx.restore();
       requestAnimationFrame(loop);
     }
 
