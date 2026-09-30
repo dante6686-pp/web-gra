@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Cyber Dodge</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
+    body { background: #0b0e14; overflow: hidden; font-family: monospace; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Gracz
+    const player = {
+      x: canvas.width / 2,
+      y: canvas.height - 120,
+      radius: 18,
+      color: '#00ffcc'
+    };
+
+    let enemies = [];
+    let score = 0;
+    let gameOver = false;
+    let enemySpeed = 4;
+    let spawnTimer = 0;
+
+    // Sterowanie dotykiem / palcem
+    function movePlayer(e) {
+      const touch = e.touches ? e.touches[0] : e;
+      player.x = touch.clientX;
+      player.y = touch.clientY - 40; // lekko nad palcem, żeby go widzieć
+      if (gameOver) resetGame();
+    }
+
+    window.addEventListener('touchmove', movePlayer, { passive: false });
+    window.addEventListener('touchstart', movePlayer, { passive: false });
+    window.addEventListener('mousemove', (e) => { if (e.buttons) movePlayer(e); });
+
+    function resetGame() {
+      enemies = [];
+      score = 0;
+      enemySpeed = 4;
+      gameOver = false;
+      player.x = canvas.width / 2;
+      player.y = canvas.height - 120;
+    }
+
+    function loop() {
+      ctx.fillStyle = 'rgba(11, 14, 20, 0.3)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (!gameOver) {
+        score++;
+        spawnTimer++;
+
+        // Co jakiś czas zwiększamy trudność
+        if (score % 500 === 0) enemySpeed += 0.8;
+
+        // Spawnowanie przeszkód
+        if (spawnTimer % 20 === 0) {
+          enemies.push({
+            x: Math.random() * (canvas.width - 20) + 10,
+            y: -20,
+            radius: Math.random() * 12 + 10,
+            color: '#ff0055'
+          });
+        }
+
+        // Rysowanie gracza (neonowy krążek)
+        ctx.save();
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = player.color;
+        ctx.fillStyle = player.color;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Przeszkody i kolizje
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          const en = enemies[i];
+          en.y += enemySpeed;
+
+          ctx.save();
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = en.color;
+          ctx.fillStyle = en.color;
+          ctx.beginPath();
+          ctx.arc(en.x, en.y, en.radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          // Detekcja uderzenia
+          const dist = Math.hypot(player.x - en.x, player.y - en.y);
+          if (dist < player.radius + en.radius) {
+            gameOver = true;
+          }
+
+          if (en.y > canvas.height + 30) enemies.splice(i, 1);
+        }
+
+        // Punkty
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 20px monospace';
+        ctx.fillText(`SCORE: ${score}`, 20, 45);
+      } else {
+        // Game Over
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 30px monospace';
+        ctx.fillText('KONIEC GRY', canvas.width / 2, canvas.height / 2 - 20);
+        ctx.font = '16px monospace';
+        ctx.fillStyle = '#aaa';
+        ctx.fillText(`Wynik: ${score}`, canvas.width / 2, canvas.height / 2 + 15);
+        ctx.fillStyle = '#00ffcc';
+        ctx.fillText('Dotknij ekranu, by zagrać znowu', canvas.width / 2, canvas.height / 2 + 55);
+        ctx.textAlign = 'left';
+      }
+
+      requestAnimationFrame(loop);
+    }
+
+    loop();
+  </script>
+</body>
+</html>
