@@ -50,19 +50,83 @@
       if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
-    function playLaserSound(pitchMod = 1) {
+    // UNIKATOWE BRZMIENIE DLA KAŻDEJ Z 5 BRONI
+    function playLaserSound(lvl = 1) {
       if (!audioCtx) return;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(820 * pitchMod, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.05);
-      gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.005, audioCtx.currentTime + 0.05);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.05);
+      const now = audioCtx.currentTime;
+
+      if (lvl === 1) {
+        // Poziom 1: Klasyczny, szybki laser saw
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(880, now);
+        osc.frequency.exponentialRampToValueAtTime(110, now + 0.05);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.005, now + 0.05);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      } else if (lvl === 2) {
+        // Poziom 2: Podwójny impuls metaliczny (square dual-tone)
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(990, now);
+        osc.frequency.setValueAtTime(740, now + 0.02);
+        osc.frequency.exponentialRampToValueAtTime(140, now + 0.06);
+        gain.gain.setValueAtTime(0.07, now);
+        gain.gain.exponentialRampToValueAtTime(0.004, now + 0.06);
+        osc.start(now);
+        osc.stop(now + 0.06);
+      } else if (lvl === 3) {
+        // Poziom 3: Rozproszona plazma (triangle wave + basowy sweep)
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(580, now);
+        osc.frequency.exponentialRampToValueAtTime(70, now + 0.07);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.008, now + 0.07);
+        osc.start(now);
+        osc.stop(now + 0.07);
+      } else if (lvl === 4) {
+        // Poziom 4: Ciężkie działo odłamkowe (rezonansowy spadek częstotliwości)
+        const osc = audioCtx.createOscillator();
+        const filter = audioCtx.createBiquadFilter();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(1200, now);
+        filter.frequency.exponentialRampToValueAtTime(150, now + 0.08);
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.exponentialRampToValueAtTime(45, now + 0.08);
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+        gain.gain.setValueAtTime(0.14, now);
+        gain.gain.exponentialRampToValueAtTime(0.005, now + 0.08);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      } else {
+        // Poziom 5: Overdrive Hyper-Beam (przeszywający syntetyczny pisk)
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(1480, now);
+        osc.frequency.exponentialRampToValueAtTime(240, now + 0.05);
+        gain.gain.setValueAtTime(0.13, now);
+        gain.gain.exponentialRampToValueAtTime(0.005, now + 0.05);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      }
     }
 
     function playEnemyShootSound() {
@@ -112,20 +176,28 @@
       osc.stop(audioCtx.currentTime + duration);
     }
 
-    function playPowerupSound() {
+    // UNIKATOWY JINGLE DLA KAŻDEGO POZIOMU ULEPSZENIA
+    function playPowerupSound(lvl = 2) {
       if (!audioCtx) return;
-      const notes = [523, 659, 783, 1046];
+      const notesByLevel = {
+        2: [440, 659],                          // Duet A4 -> E5
+        3: [440, 554, 659],                     // Trójdźwięk A-dur
+        4: [440, 554, 659, 880],                // Czterodźwięk do oktawy A5
+        5: [523, 659, 783, 1046, 1318]          // Pełna fanfara Overdrive (C-E-G-C-E)
+      };
+
+      const notes = notesByLevel[lvl] || [523, 659, 783, 1046];
       notes.forEach((freq, idx) => {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-        osc.type = 'sine';
+        osc.type = lvl === 5 ? 'triangle' : 'sine';
         osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.05);
         gain.gain.setValueAtTime(0.15, audioCtx.currentTime + idx * 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + idx * 0.05 + 0.11);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + idx * 0.05 + 0.12);
         osc.start(audioCtx.currentTime + idx * 0.05);
-        osc.stop(audioCtx.currentTime + idx * 0.05 + 0.11);
+        osc.stop(audioCtx.currentTime + idx * 0.05 + 0.12);
       });
     }
 
@@ -211,7 +283,7 @@
       },
 
       scheduleStep(time, stepIdx) {
-        let bassSeq = currentSector === 1 ? this.seqSector1 : this.seqSector2;
+        let bassSeq = currentSectorIndex % 2 === 0 ? this.seqSector1 : this.seqSector2;
         if (this.isBoss) bassSeq = this.seqBoss;
 
         const freq = bassSeq[stepIdx];
@@ -259,8 +331,81 @@
     // ==========================================
     // --- STAN GRY, SEKTORY I GRACZ ---
     // ==========================================
-    let currentSector = 1;
-    const LEVEL_DURATION = 44; // Czas fali do nadejścia Bossa (44s)
+    const DEFAULT_CAMPAIGN = [
+      {
+        id: 1,
+        name: "SEKTOR 01: PERYMETR ROJU",
+        duration: 44,
+        color: "#00ffcc",
+        hasAsteroids: false,
+        cutscene: {
+          illustration: "briefing",
+          lines: [
+            "SYSTEMY BOJOWE: ONLINE. SEKTOR 01.",
+            "ALARM: Formacja wrogich dronów naruszyła perymetr!",
+            "ROZKAZ: Zniszcz wrogów i flagowy rdzeń TITAN-PRIME.",
+            "WSKAZÓWKA: Przechwytuj kontenery zasobów z transporterów!"
+          ]
+        },
+        boss: {
+          name: "TITAN-PRIME [RDZEŃ 01]",
+          hp: 120,
+          color: "#ff0055",
+          speedX: 2.2,
+          shootRate: 55,
+          phase2Threshold: 0.5
+        }
+      },
+      {
+        id: 2,
+        name: "SEKTOR 02: PAS ASTEROID",
+        duration: 48,
+        color: "#00ff88",
+        hasAsteroids: true,
+        cutscene: {
+          illustration: "sector2_debrief",
+          lines: [
+            "TITAN-PRIME ZNISZCZONY! SEKTOR 01 CZYSTY.",
+            "ALARM: Niedobitki floty uciekają w Pas Asteroid.",
+            "ROZKAZ: Oczyść Sektor 02. Uwaga na gęsty gruz!",
+            "SKOK HIPERPRZESTRZENNY ZA 3... 2... 1..."
+          ]
+        },
+        boss: {
+          name: "DREADNOUGHT VEX",
+          hp: 180,
+          color: "#ff9900",
+          speedX: 2.6,
+          shootRate: 46,
+          phase2Threshold: 0.5
+        }
+      }
+    ];
+
+    let campaign = JSON.parse(JSON.stringify(DEFAULT_CAMPAIGN));
+    let currentSectorIndex = 0;
+    let isCustomCampaignLoaded = false;
+
+    function loadCampaignFromHash() {
+      try {
+        if (window.location.hash.startsWith('#campaign=')) {
+          const raw = decodeURIComponent(window.location.hash.substring(10));
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            campaign = parsed;
+            isCustomCampaignLoaded = true;
+          }
+        }
+      } catch (err) {
+        console.warn('Błąd ładowania kampanii z URL:', err);
+      }
+    }
+    loadCampaignFromHash();
+
+    function getCurSector() {
+      return campaign[currentSectorIndex] || campaign[0];
+    }
+
     const WARMUP_DURATION = 2.4;
 
     const player = {
@@ -282,6 +427,9 @@
     let state = 'SPLASH';
     let splashAlpha = 0;
     let splashBtnBounds = { x: 0, y: 0, w: 0, h: 0 };
+    let editorBtnBounds = { x: 0, y: 0, w: 0, h: 0 };
+    let isGodMode = false;
+    let godModeBtnBounds = { x: 0, y: 0, w: 0, h: 0 };
     let stars = [];
 
     for (let i = 0; i < 55; i++) {
@@ -294,8 +442,27 @@
     }
 
     // ==========================================
-    // --- UNIWERSALNY SYSTEM CUTSCENEK ---
+    // --- UNIWERSALNY SYSTEM CUTSCENEK (Z ZAWIJANIEM TEKSTU) ---
     // ==========================================
+    function getWrappedLines(context, text, maxWidth) {
+      const words = text.split(' ');
+      const lines = [];
+      let current = '';
+
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        const testLine = current ? current + ' ' + word : word;
+        if (context.measureText(testLine).width > maxWidth && current) {
+          lines.push(current);
+          current = word;
+        } else {
+          current = testLine;
+        }
+      }
+      if (current) lines.push(current);
+      return lines;
+    }
+
     const CutsceneSystem = {
       illustration: 'briefing',
       lines: [],
@@ -303,7 +470,7 @@
       displayedText: '',
       charIndex: 0,
       charTimer: 0,
-      charInterval: 0.025,
+      charInterval: 0.022,
       isLineComplete: false,
       onComplete: null,
 
@@ -361,7 +528,7 @@
         ctx.fillStyle = '#04060a';
         ctx.fillRect(0, 0, width, height);
 
-        const illusHeight = height * 0.43;
+        const illusHeight = Math.min(height * 0.40, 240);
 
         // 1. GÓRNA POŁOWA: ILUSTRACJA TAKTYCZNA
         ctx.save();
@@ -372,10 +539,11 @@
         ctx.fillStyle = currentSector === 2 ? '#0b130e' : '#080d18';
         ctx.fillRect(14, 14, width - 28, illusHeight);
 
-        const gridColor = currentSector === 2 ? 'rgba(0, 255, 136, 0.12)' : 'rgba(0, 255, 204, 0.12)';
+        const activeColor = getCurSector().color || '#00ffcc';
+        const gridColor = `${activeColor}22`;
         ctx.strokeStyle = gridColor;
         ctx.lineWidth = 1;
-        const gridStep = 30;
+        const gridStep = 28;
         for (let x = 14; x < width - 14; x += gridStep) {
           ctx.beginPath();
           ctx.moveTo(x, 14);
@@ -395,15 +563,15 @@
         if (this.illustration === 'briefing') {
           ctx.strokeStyle = 'rgba(0, 229, 255, 0.35)';
           ctx.beginPath();
-          ctx.arc(centerX, centerY, 55, 0, Math.PI * 2);
-          ctx.arc(centerX, centerY, 105, 0, Math.PI * 2);
+          ctx.arc(centerX, centerY, 48, 0, Math.PI * 2);
+          ctx.arc(centerX, centerY, 90, 0, Math.PI * 2);
           ctx.stroke();
 
           const sweepAngle = (now * 0.0024) % (Math.PI * 2);
-          ctx.strokeStyle = '#00ffcc';
+          ctx.strokeStyle = activeColor;
           ctx.beginPath();
           ctx.moveTo(centerX, centerY);
-          ctx.lineTo(centerX + Math.cos(sweepAngle) * 115, centerY + Math.sin(sweepAngle) * 115);
+          ctx.lineTo(centerX + Math.cos(sweepAngle) * 98, centerY + Math.sin(sweepAngle) * 98);
           ctx.stroke();
 
           ctx.strokeStyle = '#ff0055';
@@ -411,12 +579,12 @@
           ctx.shadowColor = '#ff0055';
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.moveTo(centerX, centerY - 38);
-          ctx.lineTo(centerX + 48, centerY + 22);
-          ctx.lineTo(centerX + 18, centerY + 16);
-          ctx.lineTo(centerX, centerY + 34);
-          ctx.lineTo(centerX - 18, centerY + 16);
-          ctx.lineTo(centerX - 48, centerY + 22);
+          ctx.moveTo(centerX, centerY - 32);
+          ctx.lineTo(centerX + 40, centerY + 18);
+          ctx.lineTo(centerX + 15, centerY + 13);
+          ctx.lineTo(centerX, centerY + 28);
+          ctx.lineTo(centerX - 15, centerY + 13);
+          ctx.lineTo(centerX - 40, centerY + 18);
           ctx.closePath();
           ctx.stroke();
           ctx.shadowBlur = 0;
@@ -426,28 +594,38 @@
           ctx.shadowBlur = 8;
           ctx.shadowColor = '#ffbb00';
           for (let a = 0; a < 6; a++) {
-            const ax = centerX + Math.cos(a * 1.05 + now * 0.001) * (50 + a * 12);
-            const ay = centerY + Math.sin(a * 1.05 + now * 0.001) * (30 + a * 8);
-            ctx.strokeRect(ax - 8, ay - 8, 16, 16);
+            const ax = centerX + Math.cos(a * 1.05 + now * 0.001) * (45 + a * 10);
+            const ay = centerY + Math.sin(a * 1.05 + now * 0.001) * (26 + a * 6);
+            ctx.strokeRect(ax - 7, ay - 7, 14, 14);
           }
           ctx.shadowBlur = 0;
+        } else if (this.illustration === 'ai_core') {
+          ctx.strokeStyle = '#bf00ff';
+          ctx.lineWidth = 2;
+          ctx.save();
+          ctx.translate(centerX, centerY);
+          ctx.rotate(now * 0.0015);
+          ctx.strokeRect(-38, -38, 76, 76);
+          ctx.rotate(-now * 0.003);
+          ctx.strokeRect(-22, -22, 44, 44);
+          ctx.restore();
         }
 
-        ctx.fillStyle = '#00ffcc';
+        ctx.fillStyle = activeColor;
         ctx.font = 'bold 11px monospace';
         ctx.textAlign = 'left';
-        ctx.fillText(`// RADAR TAKTYCZNY: SEKTOR 0${currentSector}`, 26, 34);
+        ctx.fillText(`// RADAR TAKTYCZNY: SEKTOR 0${currentSectorIndex + 1}`, 26, 32);
         ctx.fillStyle = '#ff0055';
         ctx.textAlign = 'right';
-        ctx.fillText('STATUS: AKTYWNY', width - 26, 34);
+        ctx.fillText('STATUS: AKTYWNY', width - 26, 32);
 
         ctx.restore();
 
-        ctx.strokeStyle = currentSector === 2 ? '#00ff88' : '#00ffcc';
+        ctx.strokeStyle = activeColor;
         ctx.lineWidth = 2;
         ctx.strokeRect(14, 14, width - 28, illusHeight);
 
-        // 2. DOLNA POŁOWA: KONSOLA PROMPTU
+        // 2. DOLNA POŁOWA: KONSOLA PROMPTU (Z ZAWIJANIEM WIERSZY)
         const termY = 14 + illusHeight + 14;
         const termH = height - termY - 18;
 
@@ -457,33 +635,47 @@
         ctx.strokeRect(14, termY, width - 28, termH);
 
         ctx.fillStyle = '#0a1722';
-        ctx.fillRect(14, termY, width - 28, 26);
+        ctx.fillRect(14, termY, width - 28, 24);
         ctx.fillStyle = '#00e5ff';
         ctx.font = 'bold 11px monospace';
         ctx.textAlign = 'left';
-        ctx.fillText('> TERMINAL POKŁADOWY // TRANSMISJA DOWÓDZTWA', 24, termY + 18);
+        ctx.fillText('> KONSOLA TAKTYCZNA // DOWÓDZTWO', 24, termY + 16);
 
-        const startX = 26;
-        let lineY = termY + 52;
-        const lineHeight = 24;
+        const startX = 24;
+        let lineY = termY + 46;
+        const lineHeight = 20;
+        const maxTextWidth = width - 28 - 28; // Bezpieczny margines boczny
 
-        ctx.font = '13px monospace';
+        ctx.font = '12px monospace';
+
+        // Wyświetlanie zakończonych linijek z podziałem wierszy
         for (let i = 0; i < this.currentLineIndex; i++) {
-          ctx.fillStyle = 'rgba(0, 255, 204, 0.45)';
-          ctx.fillText(`> ${this.lines[i]}`, startX, lineY);
+          ctx.fillStyle = 'rgba(0, 255, 204, 0.40)';
+          const wrapped = getWrappedLines(ctx, '> ' + this.lines[i], maxTextWidth);
+          for (let w = 0; w < wrapped.length; w++) {
+            ctx.fillText(wrapped[w], startX, lineY);
+            lineY += lineHeight;
+          }
+        }
+
+        // Wyświetlanie obecnie wpisywanej linijki z kursorem
+        ctx.fillStyle = '#00ffcc';
+        const cursor = Math.floor(now / 350) % 2 === 0 ? '█' : ' ';
+        const currentWrapped = getWrappedLines(ctx, '> ' + this.displayedText, maxTextWidth);
+
+        for (let j = 0; j < currentWrapped.length; j++) {
+          const isLastSubLine = j === currentWrapped.length - 1;
+          ctx.fillText(currentWrapped[j] + (isLastSubLine ? cursor : ''), startX, lineY);
           lineY += lineHeight;
         }
 
-        ctx.fillStyle = '#00ffcc';
-        ctx.fillText(`> ${this.displayedText}${Math.floor(now / 350) % 2 === 0 ? '█' : ' '}`, startX, lineY);
-
         ctx.textAlign = 'center';
-        ctx.fillStyle = this.isLineComplete ? '#ffea00' : 'rgba(255, 234, 0, 0.5)';
-        ctx.font = 'bold 12px monospace';
+        ctx.fillStyle = this.isLineComplete ? '#ffea00' : 'rgba(255, 234, 0, 0.45)';
+        ctx.font = 'bold 11px monospace';
         const promptText = this.currentLineIndex === this.lines.length - 1 && this.isLineComplete 
           ? '[ DOTKNIJ, ABY POTWIERDZIĆ ROZKAZ ▶ ]' 
           : '[ DOTKNIJ, ABY KONTYNUOWAĆ ▶ ]';
-        ctx.fillText(promptText, width / 2, termY + termH - 16);
+        ctx.fillText(promptText, width / 2, termY + termH - 14);
       }
     };
 
@@ -525,7 +717,10 @@
       playBossAlarm();
       MusicEngine.isBoss = true;
 
-      const bossHp = currentSector === 1 ? 120 : 180;
+      const sec = getCurSector();
+      const bConf = sec.boss || {};
+      const bossHp = bConf.hp || 120;
+
       boss = {
         x: canvas.width / 2,
         y: -90,
@@ -536,12 +731,32 @@
         hp: bossHp,
         maxHp: bossHp,
         phase: 1,
-        color: '#ff0055',
-        speedX: 2.2,
+        color: bConf.color || '#ff0055',
+        speedX: bConf.speedX || 2.2,
         shootCooldown: 0,
         flash: 0,
-        name: currentSector === 1 ? 'TITAN-PRIME [RDZEŃ 01]' : 'DREADNOUGHT VEX'
+        shootRate: bConf.shootRate || 50,
+        phase2Threshold: bConf.phase2Threshold || 0.5,
+        name: bConf.name || `BOSS SEKTORA 0${currentSectorIndex + 1}`
       };
+    }
+
+    function startSectorCutscene(sectorIdx = currentSectorIndex) {
+      const sec = campaign[sectorIdx] || campaign[0];
+      CutsceneSystem.start({
+        illustration: sec.cutscene?.illustration || 'briefing',
+        lines: sec.cutscene?.lines && sec.cutscene.lines.length > 0 
+          ? sec.cutscene.lines 
+          : [
+            `SEKTOR 0${sectorIdx + 1}: ${sec.name || 'ANOMALIA BOJOWA'}`,
+            'Zniszcz wrogie formacje i przygotuj się na starcie z Bossem!'
+          ],
+        onComplete: () => {
+          state = 'WARMUP';
+          warmupTimer = WARMUP_DURATION;
+          MusicEngine.start();
+        }
+      });
     }
 
     function onTouchStart(e) {
@@ -554,25 +769,25 @@
         const clientX = touch.clientX - rect.left;
         const clientY = touch.clientY - rect.top;
 
+        // Przycisk edytora
+        const eb = editorBtnBounds;
+        if (clientX >= eb.x && clientX <= eb.x + eb.w && clientY >= eb.y && clientY <= eb.y + eb.h) {
+          playBtnSound();
+          window.location.href = 'editor.html';
+          return;
+        }
+
+        const gb = godModeBtnBounds;
+        if (clientX >= gb.x && clientX <= gb.x + gb.w && clientY >= gb.y && clientY <= gb.y + gb.h) {
+          isGodMode = !isGodMode;
+          playBtnSound();
+          return;
+        }
+
         const b = splashBtnBounds;
         if (clientX >= b.x && clientX <= b.x + b.w && clientY >= b.y && clientY <= b.y + b.h) {
           playBtnSound();
-          CutsceneSystem.start({
-            illustration: 'briefing',
-            lines: [
-              'INICJALIZACJA SYSTEMÓW POKŁADOWYCH...',
-              'POŁĄCZENIE Z DOWÓDZTWEM SEKTORA 07 AKTYWNE.',
-              'ALARM: Formacja wrogich dronów i niszczycieli wkroczyła w perymetr.',
-              'OSTRZEŻENIE: Wrogie jednostki bojowe otwierają ogień plazmowy!',
-              'ZADANIE: Przetrwaj falę i zniszcz flagowy rdzeń TITAN-PRIME.',
-              'PRZEJMUJ ZASOBY Z TRANSPORTERÓW I ROZPOCZNIJ WALKĘ.'
-            ],
-            onComplete: () => {
-              state = 'WARMUP';
-              warmupTimer = WARMUP_DURATION;
-              MusicEngine.start();
-            }
-          });
+          startSectorCutscene(0);
         }
         return;
       }
@@ -583,7 +798,7 @@
       }
 
       if (state === 'WON' || state === 'GAMEOVER') {
-        currentSector = 1;
+        currentSectorIndex = 0;
         resetGame();
         return;
       }
@@ -644,6 +859,7 @@
       bossWarningTimer = 0;
       spawnTimer = 0;
       asteroidTimer = 0;
+      currentSectorIndex = 0;
 
       UPGRADE_MILESTONES.forEach(m => m.triggered = false);
 
@@ -653,6 +869,35 @@
 
       MusicEngine.isBoss = false;
       MusicEngine.start();
+    }
+
+    function advanceToNextSector() {
+      enemies = [];
+      bullets = [];
+      enemyBullets = [];
+      particles = [];
+      pickups = [];
+      floatingTexts = [];
+      asteroids = [];
+      boss = null;
+      levelTimer = 0;
+      warmupTimer = WARMUP_DURATION;
+      targetTierNeeded = Math.min(5, player.weaponLevel + 1);
+      retryUpgradeTimer = 0;
+      bossWarningTimer = 0;
+      spawnTimer = 0;
+      asteroidTimer = 0;
+
+      UPGRADE_MILESTONES.forEach(m => {
+        m.triggered = player.weaponLevel >= m.targetTier;
+      });
+
+      player.x = canvas.width / 2;
+      player.y = canvas.height * 0.78;
+      isTouching = false;
+
+      MusicEngine.isBoss = false;
+      startSectorCutscene(currentSectorIndex);
     }
 
     function startSector2() {
@@ -691,30 +936,27 @@
       const px = player.x;
       const py = player.y - player.radius;
 
+      playLaserSound(lvl);
+
       if (lvl === 1) {
         bullets.push({ x: px, y: py, vx: 0, vy: -15, damage: 1, color: '#00ffff', radius: 3, canFragment: false });
-        playLaserSound(1.0);
       } else if (lvl === 2) {
         bullets.push({ x: px - 8, y: py, vx: 0, vy: -15, damage: 1, color: '#00ffff', radius: 3, canFragment: false });
         bullets.push({ x: px + 8, y: py, vx: 0, vy: -15, damage: 1, color: '#00ffff', radius: 3, canFragment: false });
-        playLaserSound(1.1);
       } else if (lvl === 3) {
         bullets.push({ x: px, y: py, vx: 0, vy: -15, damage: 1, color: '#00ffff', radius: 3.5, canFragment: false });
         bullets.push({ x: px - 9, y: py, vx: -2.8, vy: -14.5, damage: 1, color: '#33ffaa', radius: 3, canFragment: false });
         bullets.push({ x: px + 9, y: py, vx: 2.8, vy: -14.5, damage: 1, color: '#33ffaa', radius: 3, canFragment: false });
-        playLaserSound(1.2);
       } else if (lvl === 4) {
         bullets.push({ x: px, y: py, vx: 0, vy: -15, damage: 1.5, color: '#ffea00', radius: 4.5, canFragment: true });
         bullets.push({ x: px - 11, y: py, vx: -3.2, vy: -14, damage: 1, color: '#ff9900', radius: 3.5, canFragment: false });
         bullets.push({ x: px + 11, y: py, vx: 3.2, vy: -14, damage: 1, color: '#ff9900', radius: 3.5, canFragment: false });
-        playLaserSound(1.3);
       } else if (lvl >= 5) {
         bullets.push({ x: px, y: py, vx: 0, vy: -16, damage: 2, color: '#ff00ff', radius: 5, canFragment: true });
         bullets.push({ x: px - 7, y: py, vx: -2.2, vy: -15.5, damage: 1.2, color: '#00ffff', radius: 3.5, canFragment: true });
         bullets.push({ x: px + 7, y: py, vx: 2.2, vy: -15.5, damage: 1.2, color: '#00ffff', radius: 3.5, canFragment: true });
         bullets.push({ x: px - 14, y: py, vx: -5.0, vy: -13.5, damage: 1, color: '#ffea00', radius: 3, canFragment: false });
         bullets.push({ x: px + 14, y: py, vx: 5.0, vy: -13.5, damage: 1, color: '#ffea00', radius: 3, canFragment: false });
-        playLaserSound(1.45);
       }
     }
 
@@ -908,9 +1150,9 @@
 
         if (splashAlpha > 0.4) {
           const btnW = Math.min(280, canvas.width - 60);
-          const btnH = 54;
+          const btnH = 50;
           const btnX = (canvas.width - btnW) / 2;
-          const btnY = canvas.height * 0.65;
+          const btnY = canvas.height * 0.60;
           splashBtnBounds = { x: btnX, y: btnY, w: btnW, h: btnH };
 
           const btnPulse = Math.sin(now * 0.005) * 4;
@@ -926,7 +1168,51 @@
           ctx.fillStyle = '#ffffff';
           ctx.shadowBlur = 8;
           ctx.font = 'bold 16px monospace';
-          ctx.fillText('ROZPOCZNIJ MISJĘ', canvas.width / 2, btnY + 33);
+          ctx.fillText('ROZPOCZNIJ MISJĘ', canvas.width / 2, btnY + 31);
+
+          // Przycisk Edytora Misji
+          const edW = Math.min(280, canvas.width - 60);
+          const edH = 36;
+          const edX = (canvas.width - edW) / 2;
+          const edY = btnY + btnH + 12;
+          editorBtnBounds = { x: edX, y: edY, w: edW, h: edH };
+
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = 'rgba(255, 0, 153, 0.12)';
+          ctx.fillRect(edX, edY, edW, edH);
+          ctx.strokeStyle = '#ff0099';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(edX, edY, edW, edH);
+
+          ctx.fillStyle = '#ff88dd';
+          ctx.font = 'bold 12px monospace';
+          ctx.fillText('🛠 OTWÓRZ EDYTOR MISJI', canvas.width / 2, edY + 23);
+
+          if (isCustomCampaignLoaded) {
+            ctx.fillStyle = '#00ffcc';
+            ctx.font = 'bold 10px monospace';
+            ctx.fillText(`[ ZAŁADOWANO KAMPANIĘ: ${campaign.length} SEKTORÓW ]`, canvas.width / 2, edY - 6);
+          }
+
+          // Przycisk Dev Invincible
+          const devW = Math.min(260, canvas.width - 60);
+          const devH = 34;
+          const devX = (canvas.width - devW) / 2;
+          const devY = edY + edH + 12;
+          godModeBtnBounds = { x: devX, y: devY, w: devW, h: devH };
+
+          ctx.shadowBlur = isGodMode ? 14 : 0;
+          ctx.shadowColor = '#ffea00';
+          ctx.fillStyle = isGodMode ? 'rgba(255, 234, 0, 0.18)' : 'rgba(255, 255, 255, 0.05)';
+          ctx.fillRect(devX, devY, devW, devH);
+
+          ctx.strokeStyle = isGodMode ? '#ffea00' : 'rgba(255, 255, 255, 0.25)';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(devX, devY, devW, devH);
+
+          ctx.fillStyle = isGodMode ? '#ffea00' : '#8899aa';
+          ctx.font = 'bold 11px monospace';
+          ctx.fillText(`DEV INVINCIBLE: ${isGodMode ? '[ WŁĄCZONY ]' : '[ WYŁĄCZONY ]'}`, canvas.width / 2, devY + 22);
         }
 
         ctx.restore();
@@ -944,15 +1230,19 @@
         return;
       }
 
-      // Tło z motion blur
-      ctx.fillStyle = currentSector === 2 ? 'rgba(6, 12, 10, 0.35)' : 'rgba(4, 6, 10, 0.35)';
+      const curSector = getCurSector();
+      const LEVEL_DURATION = curSector.duration || 44;
+      const curColor = curSector.color || '#00ffcc';
+
+      // Tło z motion blur dopasowane do barwy sektora
+      ctx.fillStyle = 'rgba(4, 6, 10, 0.35)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Gwiazdy
       stars.forEach(s => {
         s.y += s.speed * dt * (boss ? 0.8 : 2.5);
         if (s.y > 1) s.y = 0;
-        ctx.fillStyle = currentSector === 2 ? 'rgba(0, 255, 136, 0.25)' : 'rgba(0, 229, 255, 0.25)';
+        ctx.fillStyle = `${curColor}40`;
         ctx.fillRect(s.x * canvas.width, s.y * canvas.height, s.size, s.size);
       });
 
@@ -961,7 +1251,7 @@
         warmupTimer -= dt;
         if (warmupTimer <= 0) {
           state = 'PLAYING';
-          addFloatingText(`SEKTOR 0${currentSector}: START!`, canvas.width / 2, canvas.height / 2, '#00ffcc');
+          addFloatingText(`${curSector.name || 'SEKTOR'}: START!`, canvas.width / 2, canvas.height / 2, curColor);
         }
       } else if (state === 'PLAYING') {
         levelTimer += dt;
@@ -1001,23 +1291,19 @@
           }
         }
 
-        // 3. DYNAMICZNE SKALOWANIE ROJU (Czas fali + Poziom broni gracza)
+        // 3. Dynamiczne skalowanie roju
         if (!waveCompleted) {
           spawnTimer++;
           asteroidTimer++;
 
-          // Im wyższy poziom broni i im dalej w fali, tym częstsze spawny:
-          // Poziom 1 na starcie: interval ~46 klatek (~0.75s)
-          // Poziom 5 pod koniec fali: interval ~10 klatek (~0.16s!)
-          const weaponReduction = (player.weaponLevel - 1) * 5.0; // 0 do 20 klatek mniej
-          const progressReduction = waveProgress * 16.0;          // 0 do 16 klatek mniej
+          const weaponReduction = (player.weaponLevel - 1) * 5.0;
+          const progressReduction = waveProgress * 16.0;
           const currentSpawnInterval = Math.max(10, Math.round(46 - progressReduction - weaponReduction));
 
           if (spawnTimer >= currentSpawnInterval) {
             spawnTimer = 0;
             spawnRegularEnemy();
 
-            // Prawdopodobieństwo podwójnego zrzutu wroga (zależne od poziomu broni i postępu)
             let multiSpawnChance = 0;
             if (player.weaponLevel === 2) {
               multiSpawnChance = 0.15 + waveProgress * 0.15;
@@ -1033,14 +1319,12 @@
               spawnRegularEnemy();
             }
 
-            // Potrójny spawn na poziomie Overdrive (LVL 5) w drugiej połowie fali!
             if (player.weaponLevel >= 5 && waveProgress > 0.45 && Math.random() < 0.45) {
               spawnRegularEnemy();
             }
           }
 
-          // Skalowanie asteroidów w Sektorze 2
-          if (currentSector === 2) {
+          if (curSector.hasAsteroids) {
             const asteroidInterval = Math.max(26, Math.round(65 - waveProgress * 22 - (player.weaponLevel - 1) * 3));
             if (asteroidTimer >= asteroidInterval) {
               asteroidTimer = 0;
@@ -1078,8 +1362,8 @@
 
         if (boss.flash > 0) boss.flash--;
 
-        // Faza 2 (poniżej 50% HP)
-        if (boss.phase === 1 && boss.hp <= boss.maxHp * 0.5) {
+        const p2Thresh = boss.phase2Threshold || 0.5;
+        if (boss.phase === 1 && boss.hp <= boss.maxHp * p2Thresh) {
           boss.phase = 2;
           boss.speedX *= 1.4;
           boss.color = '#ff9900';
@@ -1089,7 +1373,8 @@
         }
 
         boss.shootCooldown++;
-        const bossShootInterval = boss.phase === 2 ? 38 : 55;
+        const baseInterval = boss.shootRate || (boss.phase === 2 ? 38 : 55);
+        const bossShootInterval = boss.phase === 2 ? Math.round(baseInterval * 0.75) : baseInterval;
 
         if (boss.shootCooldown >= bossShootInterval && boss.y >= boss.targetY) {
           boss.shootCooldown = 0;
@@ -1106,7 +1391,7 @@
           }
         }
 
-        // Rysowanie kadłuba Bossa
+        // Kadłub Bossa
         ctx.save();
         ctx.shadowBlur = 18;
         ctx.shadowColor = boss.color;
@@ -1153,30 +1438,17 @@
             if (b.canFragment) fragmentBullet(b.x, b.y);
             bullets.splice(j, 1);
 
-            // Zniszczenie Bossa
             if (boss.hp <= 0) {
-              createExplosion(boss.x, boss.y, '#ff0055', 40, true);
+              createExplosion(boss.x, boss.y, boss.color, 40, true);
               createExplosion(boss.x - 30, boss.y + 10, '#00ffff', 25, true);
               createExplosion(boss.x + 30, boss.y - 10, '#ffaa00', 25, true);
               score += 2500;
               boss = null;
               MusicEngine.stop();
 
-              if (currentSector === 1) {
-                CutsceneSystem.start({
-                  illustration: 'sector2_debrief',
-                  lines: [
-                    'TITAN-PRIME ZNISZCZONY! SEKTOR 07 ZABEZPIECZONY.',
-                    'DOWÓDZTWO: Rewelacyjna robota, pilocie!',
-                    'ALARM: Niedobitki floty uciekają w Sektor 08 (Pas Asteroid).',
-                    'OSTRZEŻENIE: Zagęszczenie kosmicznego gruzu jest krytyczne.',
-                    'ZADANIE: Przebij się przez pas asteroid i oczyść Sektor 08.',
-                    'SKOK HIPERPRZESTRZENNY ZA 3... 2... 1...'
-                  ],
-                  onComplete: () => {
-                    startSector2();
-                  }
-                });
+              if (currentSectorIndex < campaign.length - 1) {
+                currentSectorIndex++;
+                advanceToNextSector();
               } else {
                 state = 'WON';
                 if (score > highScore) {
@@ -1207,12 +1479,18 @@
 
         const dist = Math.hypot(player.x - eb.x, player.y - eb.y);
         if (dist < player.radius + eb.radius - 2) {
-          createExplosion(player.x, player.y, player.color, 25, true);
-          state = 'GAMEOVER';
-          MusicEngine.stop();
-          if (score > highScore) {
-            highScore = score;
-            localStorage.setItem('cyber_dodge_hi', highScore);
+          if (!isGodMode) {
+            createExplosion(player.x, player.y, player.color, 25, true);
+            state = 'GAMEOVER';
+            MusicEngine.stop();
+            if (score > highScore) {
+              highScore = score;
+              localStorage.setItem('cyber_dodge_hi', highScore);
+            }
+          } else {
+            createExplosion(eb.x, eb.y, '#ffea00', 5, false);
+            enemyBullets.splice(i, 1);
+            continue;
           }
         }
 
@@ -1293,9 +1571,15 @@
         }
 
         if (Math.hypot(player.x - ast.x, player.y - ast.y) < player.radius + ast.radius - 3) {
-          createExplosion(player.x, player.y, player.color, 25, true);
-          state = 'GAMEOVER';
-          MusicEngine.stop();
+          if (!isGodMode) {
+            createExplosion(player.x, player.y, player.color, 25, true);
+            state = 'GAMEOVER';
+            MusicEngine.stop();
+          } else {
+            createExplosion(ast.x, ast.y, '#66aa77', 10, false);
+            asteroids.splice(i, 1);
+            continue;
+          }
         }
 
         if (ast.y > canvas.height + 40) asteroids.splice(i, 1);
@@ -1319,13 +1603,14 @@
         ctx.restore();
 
         if (Math.hypot(player.x - p.x, player.y - p.y) < player.radius + 18) {
-          playPowerupSound();
           if (player.weaponLevel < player.maxWeaponLevel) {
             player.weaponLevel++;
+            playPowerupSound(player.weaponLevel);
             targetTierNeeded = player.weaponLevel + 1;
             retryUpgradeTimer = 0;
             addFloatingText(`BROŃ: POZIOM ${player.weaponLevel}!`, player.x, player.y - 30, '#00ffcc');
           } else {
+            playPowerupSound(5);
             score += 500;
             addFloatingText('+500 OVERDRIVE', player.x, player.y - 30, '#ffea00');
           }
@@ -1342,9 +1627,18 @@
 
       // --- RYSOWANIE GRACZA ---
       ctx.save();
+      if (isGodMode) {
+        ctx.strokeStyle = '#ffea00';
+        ctx.lineWidth = 2;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = '#ffea00';
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.radius + 6 + Math.sin(now * 0.01) * 2, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       ctx.shadowBlur = 16;
-      ctx.shadowColor = player.color;
-      ctx.fillStyle = player.color;
+      ctx.shadowColor = isGodMode ? '#ffea00' : player.color;
+      ctx.fillStyle = isGodMode ? '#ffea00' : player.color;
       ctx.beginPath();
       ctx.moveTo(player.x, player.y - player.radius - 4);
       ctx.lineTo(player.x + player.radius, player.y + player.radius);
@@ -1353,7 +1647,6 @@
       ctx.closePath();
       ctx.fill();
 
-      // Silnik
       ctx.fillStyle = '#ff7700';
       ctx.beginPath();
       ctx.arc(player.x, player.y + player.radius * 0.6, 4 + Math.random() * 3, 0, Math.PI * 2);
@@ -1366,7 +1659,6 @@
         en.y += en.speed;
         if (en.flash > 0) en.flash--;
 
-        // Strzelanie wroga
         if (en.shootCooldown !== 999) {
           en.shootCooldown--;
           if (en.shootCooldown <= 0 && en.y > 40 && en.y < canvas.height * 0.7) {
@@ -1381,7 +1673,6 @@
           }
         }
 
-        // Transporter ulepszenia
         if (en.hasUpgrade) {
           ctx.save();
           ctx.strokeStyle = '#00ffff';
@@ -1399,7 +1690,6 @@
           ctx.restore();
         }
 
-        // Rysowanie wroga
         ctx.save();
         ctx.shadowBlur = 12;
         ctx.shadowColor = en.color;
@@ -1419,7 +1709,6 @@
         }
         ctx.restore();
 
-        // Kolizja pocisków gracza z wrogami
         for (let j = bullets.length - 1; j >= 0; j--) {
           const b = bullets[j];
           if (Math.hypot(b.x - en.x, b.y - en.y) < en.radius + b.radius) {
@@ -1443,14 +1732,19 @@
           }
         }
 
-        // Kolizja wroga z graczem
         if (Math.hypot(player.x - en.x, player.y - en.y) < player.radius + en.radius - 3) {
-          createExplosion(player.x, player.y, player.color, 25, true);
-          state = 'GAMEOVER';
-          MusicEngine.stop();
-          if (score > highScore) {
-            highScore = score;
-            localStorage.setItem('cyber_dodge_hi', highScore);
+          if (!isGodMode) {
+            createExplosion(player.x, player.y, player.color, 25, true);
+            state = 'GAMEOVER';
+            MusicEngine.stop();
+            if (score > highScore) {
+              highScore = score;
+              localStorage.setItem('cyber_dodge_hi', highScore);
+            }
+          } else {
+            createExplosion(en.x, en.y, en.color, 12, false);
+            enemies.splice(i, 1);
+            continue;
           }
         }
 
@@ -1499,7 +1793,7 @@
 
       ctx.fillStyle = '#141a27';
       ctx.fillRect(20, 16, barWidth, 6);
-      ctx.fillStyle = currentSector === 2 ? '#00ff88' : '#00ffcc';
+      ctx.fillStyle = curColor;
       ctx.shadowBlur = 8;
       ctx.shadowColor = ctx.fillStyle;
       ctx.fillRect(20, 16, barWidth * progress, 6);
@@ -1508,7 +1802,7 @@
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 13px monospace';
       ctx.textAlign = 'left';
-      ctx.fillText(`SEKTOR 0${currentSector}`, 20, 42);
+      ctx.fillText(curSector.name || `SEKTOR 0${currentSectorIndex + 1}`, 20, 42);
 
       ctx.textAlign = 'right';
       ctx.fillText(boss ? 'WALKA Z BOSSEM!' : `FALA: ${Math.floor(progress * 100)}%`, canvas.width - 20, 42);
@@ -1519,21 +1813,27 @@
       ctx.fillStyle = '#ffea00';
       ctx.fillText(`BROŃ: LVL ${player.weaponLevel}${player.weaponLevel === 5 ? ' (OVERDRIVE)' : ''}`, 20, 88);
 
+      if (isGodMode) {
+        ctx.fillStyle = '#ffea00';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText('⚡ DEV: INVINCIBLE [GOD MODE ON]', 20, 106);
+      }
+
       if (retryUpgradeTimer > 0 && player.weaponLevel < player.maxWeaponLevel) {
         ctx.fillStyle = '#ff0055';
         ctx.font = '11px monospace';
-        ctx.fillText(`RETRY TRANSPORTERA ZA: ${Math.ceil(retryUpgradeTimer)}s`, 20, 106);
+        ctx.fillText(`RETRY TRANSPORTERA ZA: ${Math.ceil(retryUpgradeTimer)}s`, 20, isGodMode ? 122 : 106);
       }
 
       // --- EKRANY STANU ---
       if (state === 'WARMUP') {
         ctx.save();
         ctx.textAlign = 'center';
-        ctx.fillStyle = currentSector === 2 ? '#00ff88' : '#00ffcc';
+        ctx.fillStyle = curColor;
         ctx.shadowBlur = 18;
         ctx.shadowColor = ctx.fillStyle;
         ctx.font = 'bold 24px monospace';
-        ctx.fillText(`SEKTOR 0${currentSector}`, canvas.width / 2, canvas.height / 2 - 30);
+        ctx.fillText(curSector.name || `SEKTOR 0${currentSectorIndex + 1}`, canvas.width / 2, canvas.height / 2 - 30);
         ctx.fillText('PRZYGOTUJ SIĘ!', canvas.width / 2, canvas.height / 2);
         ctx.shadowBlur = 0;
         ctx.font = 'bold 36px monospace';
@@ -1547,11 +1847,11 @@
         ctx.shadowBlur = 20;
         ctx.shadowColor = '#00ffcc';
         ctx.font = 'bold 28px monospace';
-        ctx.fillText('MISJA UKOŃCZONA!', canvas.width / 2, canvas.height / 2 - 40);
+        ctx.fillText('KAMPANIA UKOŃCZONA!', canvas.width / 2, canvas.height / 2 - 40);
         ctx.shadowBlur = 0;
         ctx.font = '18px monospace';
         ctx.fillStyle = '#ffffff';
-        ctx.fillText(`Wszystkie sektory oczyszczone!`, canvas.width / 2, canvas.height / 2);
+        ctx.fillText(`Ukończono wszystkie sektory (${campaign.length})!`, canvas.width / 2, canvas.height / 2);
         ctx.fillStyle = '#aaaaaa';
         ctx.fillText(`Zestrzelenia: ${enemiesKilled}`, canvas.width / 2, canvas.height / 2 + 25);
         ctx.fillText(`Punkty: ${score}`, canvas.width / 2, canvas.height / 2 + 48);
