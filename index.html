@@ -39,7 +39,7 @@
     window.addEventListener('resize', resize);
     resize();
 
-    // --- SYNTEZATOR AUDIO ---
+    // Syntezator dźwięków Web Audio API
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     let audioCtx = null;
 
@@ -55,8 +55,8 @@
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(800 * pitchMod, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.05);
+      osc.frequency.setValueAtTime(820 * pitchMod, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.05);
       gain.gain.setValueAtTime(0.09, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.005, audioCtx.currentTime + 0.05);
       osc.start();
@@ -70,7 +70,7 @@
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(320, audioCtx.currentTime);
+      osc.frequency.setValueAtTime(340, audioCtx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.04);
       gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.04);
@@ -85,7 +85,7 @@
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.type = 'sawtooth';
-      const startFreq = heavy ? 140 : 210;
+      const startFreq = heavy ? 140 : 220;
       const duration = heavy ? 0.28 : 0.18;
       osc.frequency.setValueAtTime(startFreq, audioCtx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(25, audioCtx.currentTime + duration);
@@ -112,6 +112,21 @@
       });
     }
 
+    function playAlertSound() {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+      osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.16);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.16);
+    }
+
     function playWinSound() {
       if (!audioCtx) return;
       const notes = [440, 554, 659, 880, 1108];
@@ -129,22 +144,38 @@
       });
     }
 
-    // --- STAN GRACZA I POZIOMU ---
     const player = {
       x: canvas.width / 2,
       y: canvas.height * 0.78,
       radius: 17,
       color: '#00ffcc',
-      weaponLevel: 1, // Poziomy broni: 1 do 5
+      weaponLevel: 1,
       maxWeaponLevel: 5
     };
 
-    const LEVEL_DURATION = 38; // Czas właściwej fali w sekundach
-    const WARMUP_DURATION = 2.5; // Czas rozgrzewki przed falą
+    const LEVEL_DURATION = 45; // Czas fali: 45 sekund
+    const WARMUP_DURATION = 2.5;
 
-    let state = 'WARMUP'; // 'WARMUP', 'PLAYING', 'WON', 'GAMEOVER'
+    // Równe kamienie milowe fali:
+    // Poziom 2: 20% fali (9s)
+    // Poziom 3: 40% fali (18s)
+    // Poziom 4: 60% fali (27s)
+    // Poziom 5: 80% fali (36s) -> 80%-100% to finałowy Overdrive
+    const UPGRADE_MILESTONES = [
+      { targetTier: 2, triggerProgress: 0.20, triggered: false },
+      { targetTier: 3, triggerProgress: 0.40, triggered: false },
+      { targetTier: 4, triggerProgress: 0.60, triggered: false },
+      { targetTier: 5, triggerProgress: 0.80, triggered: false }
+    ];
+
+    let state = 'WARMUP';
     let warmupTimer = WARMUP_DURATION;
     let levelTimer = 0;
+    let enemiesKilled = 0;
+
+    let targetTierNeeded = 2; // Następny poziom, o który walczymy
+    let retryUpgradeTimer = 0; // Czas do ponowienia po ucieczce transportera lub przepadnięciu kryształu
+    const RETRY_DELAY = 5.0;   // 5 sekund na ponowny spawn w razie straty
 
     let enemies = [];
     let bullets = [];
@@ -159,7 +190,6 @@
     let shootTimer = 0;
     let screenShake = 0;
 
-    // --- STEROWANIE WZGLĘDNE (RELATYWNE) ---
     let isTouching = false;
     let lastTouchX = 0;
     let lastTouchY = 0;
@@ -218,43 +248,43 @@
       floatingTexts = [];
       score = 0;
       levelTimer = 0;
+      enemiesKilled = 0;
       warmupTimer = WARMUP_DURATION;
       state = 'WARMUP';
       player.weaponLevel = 1;
+      targetTierNeeded = 2;
+      retryUpgradeTimer = 0;
+
+      UPGRADE_MILESTONES.forEach(m => m.triggered = false);
+
       player.x = canvas.width / 2;
       player.y = canvas.height * 0.78;
       isTouching = false;
     }
 
-    // --- SPIS BRONI I STRZELANIE ---
     function shootWeapons() {
       const lvl = player.weaponLevel;
       const px = player.x;
       const py = player.y - player.radius;
 
       if (lvl === 1) {
-        // Pojedynczy centralny laser
         bullets.push({ x: px, y: py, vx: 0, vy: -15, damage: 1, color: '#00ffff', radius: 3, canFragment: false });
         playLaserSound(1.0);
       } else if (lvl === 2) {
-        // Podwójny równoległy laser
         bullets.push({ x: px - 8, y: py, vx: 0, vy: -15, damage: 1, color: '#00ffff', radius: 3, canFragment: false });
         bullets.push({ x: px + 8, y: py, vx: 0, vy: -15, damage: 1, color: '#00ffff', radius: 3, canFragment: false });
         playLaserSound(1.1);
       } else if (lvl === 3) {
-        // Potrójny wachlarz
         bullets.push({ x: px, y: py, vx: 0, vy: -15, damage: 1, color: '#00ffff', radius: 3.5, canFragment: false });
         bullets.push({ x: px - 9, y: py, vx: -2.8, vy: -14.5, damage: 1, color: '#33ffaa', radius: 3, canFragment: false });
         bullets.push({ x: px + 9, y: py, vx: 2.8, vy: -14.5, damage: 1, color: '#33ffaa', radius: 3, canFragment: false });
         playLaserSound(1.2);
       } else if (lvl === 4) {
-        // Fragmentująca plazma (rozpada się po trafieniu!)
         bullets.push({ x: px, y: py, vx: 0, vy: -15, damage: 1.5, color: '#ffea00', radius: 4.5, canFragment: true });
         bullets.push({ x: px - 11, y: py, vx: -3.2, vy: -14, damage: 1, color: '#ff9900', radius: 3.5, canFragment: false });
         bullets.push({ x: px + 11, y: py, vx: 3.2, vy: -14, damage: 1, color: '#ff9900', radius: 3.5, canFragment: false });
         playLaserSound(1.3);
       } else if (lvl >= 5) {
-        // Overdrive: 5-strzałowy rozrzut z fragmentacją odłamkową
         bullets.push({ x: px, y: py, vx: 0, vy: -16, damage: 2, color: '#ff00ff', radius: 5, canFragment: true });
         bullets.push({ x: px - 7, y: py, vx: -2.2, vy: -15.5, damage: 1.2, color: '#00ffff', radius: 3.5, canFragment: true });
         bullets.push({ x: px + 7, y: py, vx: 2.2, vy: -15.5, damage: 1.2, color: '#00ffff', radius: 3.5, canFragment: true });
@@ -264,7 +294,6 @@
       }
     }
 
-    // Fragmentacja pocisku (wybuch odłamkowy w 4 strony)
     function fragmentBullet(x, y) {
       const angles = [Math.PI * 0.25, Math.PI * 0.75, Math.PI * 1.25, Math.PI * 1.75];
       for (const a of angles) {
@@ -283,41 +312,63 @@
       }
     }
 
-    // --- TYPY WROGÓW ---
-    function spawnEnemy() {
+    function spawnUpgradeCarrier() {
+      playAlertSound();
+      addFloatingText('! TRANSPORTER ZASOBÓW !', canvas.width / 2, 70, '#00ffff');
+
+      const carrier = {
+        x: Math.random() * (canvas.width - 60) + 30,
+        y: -35,
+        radius: 22,
+        speed: 2.4, // Wolniejszy, żeby gracz miał czas go ustrzelić
+        hp: 5,
+        maxHp: 5,
+        color: '#00e5ff',
+        type: 'carrier',
+        scoreVal: 250,
+        flash: 0,
+        hasUpgrade: true
+      };
+
+      enemies.push(carrier);
+    }
+
+    function spawnRegularEnemy() {
       const rand = Math.random();
       let enemy = {};
 
-      if (rand < 0.55) {
-        // Szybki dron (1 HP)
+      if (rand < 0.60) {
+        // Dron (1 HP)
         enemy = {
           x: Math.random() * (canvas.width - 40) + 20,
           y: -25,
           radius: 12,
-          speed: 4.8 + Math.random() * 1.2 + (levelTimer / 25),
+          speed: 4.8 + Math.random() * 1.2 + (levelTimer / 30),
           hp: 1,
           maxHp: 1,
           color: '#ffaa00',
           type: 'scout',
           scoreVal: 50,
-          flash: 0
+          flash: 0,
+          hasUpgrade: false
         };
       } else if (rand < 0.88) {
-        // Krążownik bojowy (3 HP)
+        // Krążownik (3 HP)
         enemy = {
           x: Math.random() * (canvas.width - 50) + 25,
           y: -30,
           radius: 18,
-          speed: 3.3 + Math.random() * 0.8 + (levelTimer / 30),
+          speed: 3.3 + Math.random() * 0.8 + (levelTimer / 35),
           hp: 3,
           maxHp: 3,
           color: '#ff0055',
           type: 'cruiser',
           scoreVal: 120,
-          flash: 0
+          flash: 0,
+          hasUpgrade: false
         };
       } else {
-        // Ciężki niszczyciel (7 HP)
+        // Niszczyciel (7 HP)
         enemy = {
           x: Math.random() * (canvas.width - 60) + 30,
           y: -40,
@@ -328,9 +379,11 @@
           color: '#bf00ff',
           type: 'titan',
           scoreVal: 300,
-          flash: 0
+          flash: 0,
+          hasUpgrade: false
         };
       }
+
       enemies.push(enemy);
     }
 
@@ -356,7 +409,6 @@
       floatingTexts.push({ text, x, y, color, alpha: 1, vy: -1.2 });
     }
 
-    // --- GŁÓWNA PĘTLA GRY ---
     let lastTimestamp = performance.now();
 
     function loop(now) {
@@ -371,11 +423,11 @@
         if (screenShake < 0.4) screenShake = 0;
       }
 
-      // Tło z lekkim ogonem (motion blur)
+      // Tło z motion blur
       ctx.fillStyle = 'rgba(5, 7, 12, 0.35)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // --- MASZYNA STANÓW ---
+      // --- LOGIKA STANÓW ---
       if (state === 'WARMUP') {
         warmupTimer -= dt;
         if (warmupTimer <= 0) {
@@ -387,22 +439,47 @@
         spawnTimer++;
         shootTimer++;
 
+        const waveProgress = Math.min(1, levelTimer / LEVEL_DURATION);
         const waveCompleted = levelTimer >= LEVEL_DURATION;
 
-        // Auto-strzelanie podczas dotyku
+        // Auto-strzelanie
         const shootRate = player.weaponLevel >= 4 ? 7 : 8;
         if (isTouching && shootTimer % shootRate === 0) {
           shootWeapons();
         }
 
-        // Spawnowanie wrogów
+        // Sprawdzamy czy transporter lub kryształ ulepszenia jest aktualnie w grze
+        const hasCarrierOnScreen = enemies.some(e => e.hasUpgrade);
+        const hasPickupOnScreen = pickups.length > 0;
+
+        // --- HARMONOGRAM UPGRADE'ÓW ---
+        if (!waveCompleted && player.weaponLevel < player.maxWeaponLevel) {
+          // 1. Sprawdzamy czy nadszedł czas na kolejny kamień milowy (20%, 40%, 60%, 80%)
+          const nextMilestone = UPGRADE_MILESTONES.find(m => m.targetTier === targetTierNeeded);
+          if (nextMilestone && !nextMilestone.triggered && waveProgress >= nextMilestone.triggerProgress) {
+            nextMilestone.triggered = true;
+            if (!hasCarrierOnScreen && !hasPickupOnScreen) {
+              spawnUpgradeCarrier();
+            }
+          }
+
+          // 2. Obsługa ponowienia (Retry) jeśli gracz przegapił ulepszenie
+          if (retryUpgradeTimer > 0) {
+            retryUpgradeTimer -= dt;
+            if (retryUpgradeTimer <= 0 && !hasCarrierOnScreen && !hasPickupOnScreen) {
+              addFloatingText('NOWY TRANSPORTER!', canvas.width / 2, 90, '#ffea00');
+              spawnUpgradeCarrier();
+            }
+          }
+        }
+
+        // Spawnowanie standardowych wrogów
         if (!waveCompleted) {
           const spawnInterval = Math.max(14, 25 - Math.floor(levelTimer / 3.5));
           if (spawnTimer % spawnInterval === 0) {
-            spawnEnemy();
+            spawnRegularEnemy();
           }
         } else if (enemies.length === 0) {
-          // Wygrana poziomu!
           state = 'WON';
           playWinSound();
           if (score > highScore) {
@@ -412,7 +489,6 @@
         }
       }
 
-      // --- LOGIKA I RYSOWANIE POCISKÓW ---
       for (let i = bullets.length - 1; i >= 0; i--) {
         const b = bullets[i];
         b.x += b.vx || 0;
@@ -440,31 +516,32 @@
         }
       }
 
-      // --- LOGIKA I RYSOWANIE PICKUPÓW ---
       for (let i = pickups.length - 1; i >= 0; i--) {
         const p = pickups[i];
         p.y += p.vy;
         p.rot += 0.05;
 
-        // Rysowanie pulsującego błękitno-złotego kryształu
+        // Pulsujący kryształ
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(p.rot);
-        ctx.shadowBlur = 14;
+        ctx.shadowBlur = 16;
         ctx.shadowColor = '#00ffff';
         ctx.fillStyle = '#00ffff';
-        ctx.fillRect(-7, -7, 14, 14);
+        ctx.fillRect(-8, -8, 16, 16);
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(-4, -4, 8, 8);
         ctx.restore();
 
         // Kolizja z graczem
         const dist = Math.hypot(player.x - p.x, player.y - p.y);
-        if (dist < player.radius + 15) {
+        if (dist < player.radius + 18) {
           playPowerupSound();
           if (player.weaponLevel < player.maxWeaponLevel) {
             player.weaponLevel++;
-            addFloatingText(`WEAPON LVL ${player.weaponLevel}!`, player.x, player.y - 30, '#00ffcc');
+            targetTierNeeded = player.weaponLevel + 1;
+            retryUpgradeTimer = 0; // Ulepszenie zdobyte, kasujemy timer retry
+            addFloatingText(`BROŃ: POZIOM ${player.weaponLevel}!`, player.x, player.y - 30, '#00ffcc');
           } else {
             score += 500;
             addFloatingText('+500 OVERDRIVE', player.x, player.y - 30, '#ffea00');
@@ -473,10 +550,15 @@
           continue;
         }
 
-        if (p.y > canvas.height + 30) pickups.splice(i, 1);
+        // Gracz NIE ZŁAPAŁ ulepszenia – wypadło za dolną krawędź ekranu!
+        if (p.y > canvas.height + 30) {
+          pickups.splice(i, 1);
+          addFloatingText('UPGRADE PRZEPADŁ!', canvas.width / 2, canvas.height - 120, '#ff0055');
+          // Włączamy szybki retry
+          retryUpgradeTimer = RETRY_DELAY;
+        }
       }
 
-      // --- RYSOWANIE STATKU GRACZA ---
       ctx.save();
       ctx.shadowBlur = 16;
       ctx.shadowColor = player.color;
@@ -489,20 +571,38 @@
       ctx.closePath();
       ctx.fill();
 
-      // Silnik / odrzutowiec
+      // Silnik odrzutowy
       ctx.fillStyle = '#ff7700';
       ctx.beginPath();
       ctx.arc(player.x, player.y + player.radius * 0.6, 4 + Math.random() * 3, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
-      // --- LOGIKA I RYSOWANIE WROGÓW ---
       for (let i = enemies.length - 1; i >= 0; i--) {
         const en = enemies[i];
         en.y += en.speed;
         if (en.flash > 0) en.flash--;
 
-        // Rysowanie wroga (lub biały błysk hit-flash)
+        // Jeśli to transporter ulepszenia – rysujemy specjalny pulsujący pierścień i napis
+        if (en.hasUpgrade) {
+          ctx.save();
+          ctx.strokeStyle = '#00ffff';
+          ctx.lineWidth = 2.5;
+          ctx.setLineDash([6, 4]);
+          ctx.shadowBlur = 12;
+          ctx.shadowColor = '#00ffff';
+          ctx.beginPath();
+          ctx.arc(en.x, en.y, en.radius + 8 + Math.sin(now * 0.009) * 3, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.fillStyle = '#00ffff';
+          ctx.font = 'bold 10px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('UPGRADE', en.x, en.y - en.radius - 12);
+          ctx.restore();
+        }
+
+        // Rysowanie wroga
         ctx.save();
         ctx.shadowBlur = 12;
         ctx.shadowColor = en.color;
@@ -511,12 +611,12 @@
         ctx.arc(en.x, en.y, en.radius, 0, Math.PI * 2);
         ctx.fill();
 
-        // Mini pasek HP dla twardszych wrogów (> 1 HP)
+        // Mini pasek HP (> 1 HP)
         if (en.maxHp > 1) {
           const hpWidth = en.radius * 2;
           const hpHeight = 4;
           const hpX = en.x - en.radius;
-          const hpY = en.y - en.radius - 8;
+          const hpY = en.y - en.radius - 6;
 
           ctx.fillStyle = 'rgba(0,0,0,0.6)';
           ctx.fillRect(hpX, hpY, hpWidth, hpHeight);
@@ -535,22 +635,21 @@
             en.flash = 3;
             playHitSound();
 
-            // Jeśli pocisk ma fragmentację -> rozpad na odłamki
             if (b.canFragment) {
               fragmentBullet(b.x, b.y);
             }
 
             bullets.splice(j, 1);
 
-            // Wróg zniszczony!
+            // Zniszczenie wroga
             if (en.hp <= 0) {
-              const isHeavy = en.maxHp >= 6;
-              createExplosion(en.x, en.y, en.color, isHeavy ? 28 : 14, isHeavy);
+              enemiesKilled++;
+              const isHeavy = en.maxHp >= 5;
+              createExplosion(en.x, en.y, en.color, isHeavy ? 26 : 14, isHeavy);
               score += en.scoreVal;
 
-              // Szansa na zrzut pickupu ulepszenia (25% z małych, 50% ze średnich, 100% z dużych)
-              const dropChance = en.maxHp >= 6 ? 1.0 : (en.maxHp >= 3 ? 0.45 : 0.18);
-              if (Math.random() < dropChance) {
+              // Transporter zawsze upuszcza ulepszenie
+              if (en.hasUpgrade) {
                 pickups.push({ x: en.x, y: en.y, vy: 1.8, rot: 0 });
               }
 
@@ -571,12 +670,17 @@
           }
         }
 
+        // Ucieczka wroga za ekran
         if (en.y > canvas.height + 50) {
+          // Jeśli transporter uciekł – ulepszenie przepadło, włączamy retry!
+          if (en.hasUpgrade) {
+            addFloatingText('TRANSPORTER UCIEKŁ!', canvas.width / 2, canvas.height - 120, '#ff0055');
+            retryUpgradeTimer = RETRY_DELAY;
+          }
           enemies.splice(i, 1);
         }
       }
 
-      // --- CZYSTE CZĄSTECZKI WYBUCHÓW ---
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.x += p.vx;
@@ -597,7 +701,6 @@
         ctx.restore();
       }
 
-      // --- PŁYWAJĄCE NAPISY (+UPGRADE itp.) ---
       for (let i = floatingTexts.length - 1; i >= 0; i--) {
         const ft = floatingTexts[i];
         ft.y += ft.vy;
@@ -612,16 +715,15 @@
         ctx.globalAlpha = ft.alpha;
         ctx.fillStyle = ft.color;
         ctx.textAlign = 'center';
-        ctx.font = 'bold 16px monospace';
+        ctx.font = 'bold 15px monospace';
         ctx.fillText(ft.text, ft.x, ft.y);
         ctx.restore();
       }
 
-      // --- HUD I INTERFEJS ---
       const progress = Math.min(1, levelTimer / LEVEL_DURATION);
       const barWidth = canvas.width - 40;
 
-      // Górny pasek fali
+      // Pasek postępu poziomu
       ctx.fillStyle = '#141a27';
       ctx.fillRect(20, 16, barWidth, 6);
       ctx.fillStyle = '#00ffcc';
@@ -630,23 +732,35 @@
       ctx.fillRect(20, 16, barWidth * progress, 6);
       ctx.shadowBlur = 0;
 
+      // Znaczniki kamieni milowych na pasku (20%, 40%, 60%, 80%)
+      [0.20, 0.40, 0.60, 0.80].forEach(p => {
+        ctx.fillStyle = progress >= p ? '#ffffff' : '#445566';
+        ctx.fillRect(20 + barWidth * p - 1, 14, 2, 10);
+      });
+
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 14px monospace';
+      ctx.font = 'bold 13px monospace';
       ctx.textAlign = 'left';
       ctx.fillText(`POZIOM 1`, 20, 42);
 
       ctx.textAlign = 'right';
       ctx.fillText(`FALA: ${Math.floor(progress * 100)}%`, canvas.width - 20, 42);
 
-      // Wynik i Poziom Broni
+      // Wynik
       ctx.textAlign = 'left';
       ctx.fillText(`SCORE: ${score}`, 20, 68);
 
-      // Wskaźnik poziomu broni
+      // Wskaźnik broni
       ctx.fillStyle = '#ffea00';
-      ctx.fillText(`BROŃ: LVL ${player.weaponLevel}${player.weaponLevel === 5 ? ' (MAX)' : ''}`, 20, 90);
+      ctx.fillText(`BROŃ: LVL ${player.weaponLevel}${player.weaponLevel === 5 ? ' (MAX OVERDRIVE)' : ''}`, 20, 90);
 
-      // --- EKRANY SPECJALNE ---
+      // Jeśli trwa odliczanie retry – mała informacja
+      if (retryUpgradeTimer > 0 && player.weaponLevel < player.maxWeaponLevel) {
+        ctx.fillStyle = '#ff0055';
+        ctx.font = '11px monospace';
+        ctx.fillText(`RETRY TRANSPORTERA ZA: ${Math.ceil(retryUpgradeTimer)}s`, 20, 108);
+      }
+
       if (state === 'WARMUP') {
         ctx.save();
         ctx.textAlign = 'center';
@@ -675,12 +789,13 @@
         ctx.fillStyle = '#ffffff';
         ctx.fillText(`Poziom 1 ukończony!`, canvas.width / 2, canvas.height / 2);
         ctx.fillStyle = '#aaaaaa';
-        ctx.fillText(`Zdobyte punkty: ${score}`, canvas.width / 2, canvas.height / 2 + 30);
-        ctx.fillText(`Rekord: ${highScore}`, canvas.width / 2, canvas.height / 2 + 55);
+        ctx.fillText(`Zestrzelenia: ${enemiesKilled}`, canvas.width / 2, canvas.height / 2 + 25);
+        ctx.fillText(`Zdobyte punkty: ${score}`, canvas.width / 2, canvas.height / 2 + 48);
+        ctx.fillText(`Rekord: ${highScore}`, canvas.width / 2, canvas.height / 2 + 70);
 
         ctx.fillStyle = '#00ffcc';
         ctx.font = 'bold 16px monospace';
-        ctx.fillText('Dotknij ekranu, by zagrać ponownie', canvas.width / 2, canvas.height / 2 + 105);
+        ctx.fillText('Dotknij ekranu, by zagrać ponownie', canvas.width / 2, canvas.height / 2 + 115);
         ctx.restore();
       } else if (state === 'GAMEOVER') {
         ctx.save();
@@ -695,12 +810,13 @@
         ctx.font = '18px monospace';
         ctx.fillStyle = '#ffffff';
         ctx.fillText(`Wynik: ${score}`, canvas.width / 2, canvas.height / 2);
+        ctx.fillText(`Zestrzelenia: ${enemiesKilled}`, canvas.width / 2, canvas.height / 2 + 22);
         ctx.fillStyle = '#888888';
-        ctx.fillText(`Rekord: ${highScore}`, canvas.width / 2, canvas.height / 2 + 25);
+        ctx.fillText(`Rekord: ${highScore}`, canvas.width / 2, canvas.height / 2 + 46);
 
         ctx.fillStyle = '#00ffcc';
         ctx.font = 'bold 15px monospace';
-        ctx.fillText('Dotknij ekranu, by spróbować znowu', canvas.width / 2, canvas.height / 2 + 75);
+        ctx.fillText('Dotknij ekranu, by spróbować znowu', canvas.width / 2, canvas.height / 2 + 92);
         ctx.restore();
       }
 
@@ -712,4 +828,3 @@
   </script>
 </body>
 </html>
-
